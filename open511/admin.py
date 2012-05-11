@@ -1,6 +1,6 @@
 from django.contrib.gis import admin
 
-from roadevents.models import RoadEvent
+from open511.models import RoadEvent
 
 class RoadEventAdmin(admin.OSMGeoAdmin):
     pass
