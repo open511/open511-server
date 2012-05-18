@@ -2,6 +2,7 @@ from lxml import etree
 from lxml.builder import E
 
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.serializers.json import simplejson as json
 
 def geom_to_xml_element(geom):
     """Transform a GEOS or OGR geometry object into an lxml Element
@@ -37,6 +38,19 @@ def roadevent_to_xml_element(rdev):
             base.append(el)
 
     base.append(E.Geometry(geom_to_xml_element(rdev.geom)))
+    return base
+
+def roadevent_to_json_structure(rdev):
+    base = {
+        'id': rdev.source_id
+    }
+
+    for attr, el_name in ELEMENTS:
+        val = getattr(rdev, attr, None)
+        if val not in (None, ''):
+            base[el_name] = unicode(val)
+
+    base['Geometry'] = json.loads(rdev.geom.geojson)
     return base
 
 def get_base_open511_element():
