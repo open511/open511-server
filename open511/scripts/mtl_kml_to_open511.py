@@ -54,6 +54,15 @@ def feature_to_open511_element(feature):
     localisation = blob.cssselect('div#localisation p')
     if localisation:
         rdev.affected_roads = '\n\n'.join(_get_el_text(el) for el in localisation)
+        
+    try:
+        rdev.external_url = blob.cssselect('#avis_residants a, #en_savoir_plus a')[0].get('href')
+    except IndexError:
+        pass
+        
+    facultatif = blob.cssselect('div#itineraire_facult p')
+    if facultatif:
+        rdev.detour = '\n\n'.join(_get_el_text(el) for el in facultatif)
 
     return roadevent_to_xml_element(rdev)
 
