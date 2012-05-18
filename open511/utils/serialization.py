@@ -26,7 +26,9 @@ ELEMENTS = [
     ('closed', 'Closed'),
     ('traffic_restrictions', 'TrafficRestrictions'),
     ('detour', 'Detour'),
-    ('external_url', 'ExternalURL')
+    ('external_url', 'ExternalURL'),
+    ('start_date', 'StartDate'),
+    ('end_date', 'EndDate'),
 ]
 
 def roadevent_to_xml_element(rdev):

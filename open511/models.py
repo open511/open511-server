@@ -23,7 +23,7 @@ class RoadEvent(models.Model):
     title = models.CharField(blank=True, max_length=500)
     
     geom = models.GeometryField(verbose_name=_('Geometry'))
-    
+
     affected_roads = models.TextField(blank=True) # human-readable
     description = models.TextField(blank=True)
     type = models.CharField(max_length=2, choices=EVENT_TYPES, default='RW')
@@ -32,7 +32,11 @@ class RoadEvent(models.Model):
     traffic_restrictions = models.TextField(blank=True, help_text=_('e.g. temporary speed limits, size/weight limits'))
     detour = models.TextField(blank=True, help_text=_('Description of alternate route(s)'))
     external_url = models.URLField(blank=True, help_text=_('If available, URL to a full record for this event on an external site.'))
-    
+
+    # Dates and times will need to modeled in a much more complex way eventually,
+    # but this'll do for now.
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     
     def __unicode__(self):
         return self.title if self.title else self.source_id

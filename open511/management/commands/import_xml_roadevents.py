@@ -1,3 +1,4 @@
+import datetime
 import logging
 import sys
 
@@ -26,7 +27,8 @@ class Command(BaseCommand):
 
         for event in root.xpath('RoadEvent'):
             try:
-                rdev = RoadEvent(source_id=event.get('id'))
+                rdev = RoadEvent()
+                rdev.source_id = event.get('id')
                 logger.info("Importing event %s" % rdev.source_id)
                 rdev.jurisdiction = rdev.source_id.split(':')[0]
 
@@ -40,6 +42,12 @@ class Command(BaseCommand):
                     else:
                         logger.warning("Unknown tag: %s" % etree.tostring(event_el))
 
+                if isinstance(rdev.start_date, basestring):
+                    rdev.start_date = _str_to_date(rdev.start_date)
+
+                if isinstance(rdev.end_date, basestring):
+                    rdev.end_date = _str_to_date(rdev.end_date)
+
                 rdev.save()
                 created.append(rdev)
 
@@ -49,4 +57,8 @@ class Command(BaseCommand):
         print "%s entries imported." % len(created)
 
 
-
+def _str_to_date(s):
+    """2012-02-12 to a datetime.date object"""
+    return datetime.date(*[
+        int(x) for x in s.split('-')
+    ])
