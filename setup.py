@@ -13,5 +13,8 @@ setup(
     ],
     install_requires = [
         'lxml',
-    ]
+    ],
+    entry_points = {
+        'console_scripts': ['mtl_kml_to_open511 = open511.scripts.mtl_kml_to_open511:main']
+    },
 )

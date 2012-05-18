@@ -1,3 +1,9 @@
+"""
+A script to convert Ville de Montreal roadwork KML files, e.g. from
+http://depot.ville.montreal.qc.ca/info-travaux/data.kml
+to an Open511 XML file.
+"""
+
 import hashlib
 import sys
 import tempfile
@@ -69,7 +75,10 @@ def _get_el_text(el):
             t += subel.tail
     return t
 
-if __name__ == '__main__':
+def main():
     filename = sys.argv[1]
     el = kml_file_to_open511_element(filename)
     print etree.tostring(el, pretty_print=True)
+
+if __name__ == '__main__':
+    main()

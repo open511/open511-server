@@ -2,7 +2,11 @@ from lxml import etree
 from lxml.builder import E
 
 from django.contrib.gis.geos import GEOSGeometry
-from django.core.serializers.json import simplejson as json
+
+try:
+    import simplejson as json
+except ImportError:
+    import json
 
 def geom_to_xml_element(geom):
     """Transform a GEOS or OGR geometry object into an lxml Element
