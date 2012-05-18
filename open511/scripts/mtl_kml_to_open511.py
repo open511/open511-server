@@ -6,7 +6,7 @@ from django.contrib.gis.gdal import DataSource
 from lxml import etree
 import lxml.html
 
-from open511.serialization import roadevent_to_xml_element, get_base_open511_element
+from open511.utils.serialization import roadevent_to_xml_element, get_base_open511_element
 
 JURISDICTION = 'converted.ville.montreal.qc.ca'
 
