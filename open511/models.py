@@ -1,6 +1,8 @@
 from django.contrib.gis.db import models
 from django.utils.translation import ugettext_lazy as _
 
+from open511.utils import serialization
+
 class RoadEvent(models.Model):
     
     EVENT_TYPES = [
@@ -20,7 +22,7 @@ class RoadEvent(models.Model):
     jurisdiction = models.CharField(max_length=100, help_text=_('e.g. ville.montreal.qc.ca')) 
     title = models.CharField(blank=True, max_length=500)
     
-    geom = models.LineStringField(verbose_name=_('Geometry'))
+    geom = models.GeometryField(verbose_name=_('Geometry'))
     
     affected_roads = models.TextField(blank=True) # human-readable
     description = models.TextField(blank=True)
@@ -40,3 +42,9 @@ class RoadEvent(models.Model):
         if not self.source_id:
             self.source_id = self.id
             self.save()
+
+    def to_xml_element(self):
+        return serialization.roadevent_to_xml_element(self)
+
+    def to_json_structure(self):
+        return serialization.roadevent_to_json_structure(self)
