@@ -25,22 +25,26 @@ class Command(BaseCommand):
         created = []
 
         for event in root.xpath('RoadEvent'):
-            rdev = RoadEvent(source_id=event.get('id'))
-            created.append(rdev)
-            rdev.jurisdiction = rdev.source_id.split(':')[0]
+            try:
+                rdev = RoadEvent(source_id=event.get('id'))
+                logger.info("Importing event %s" % rdev.source_id)
+                rdev.jurisdiction = rdev.source_id.split(':')[0]
 
-            for event_el in event:
-                if event_el.tag in self.element_lookup:
-                    setattr(rdev, self.element_lookup[event_el.tag], event_el.text)
-                elif event_el.tag == 'Geometry':
-                    gml = etree.tostring(event_el[0])
-                    ewkt = gml_to_ewkt(gml, force_2D=True)
-                    print ewkt
-                    rdev.geom = geos_geom_from_string(ewkt)
-                else:
-                    logger.warning("Unknown tag: %s" % etree.tostring(event_el))
+                for event_el in event:
+                    if event_el.tag in self.element_lookup:
+                        setattr(rdev, self.element_lookup[event_el.tag], event_el.text)
+                    elif event_el.tag == 'Geometry':
+                        gml = etree.tostring(event_el[0])
+                        ewkt = gml_to_ewkt(gml, force_2D=True)
+                        rdev.geom = geos_geom_from_string(ewkt)
+                    else:
+                        logger.warning("Unknown tag: %s" % etree.tostring(event_el))
 
-            rdev.save()
+                rdev.save()
+                created.append(rdev)
+
+        except ValueError as e:
+                    logger.error("ValueError importing %s: %s" % (e, rdev.source_id))
 
         print "%s entries imported." % len(created)
 
