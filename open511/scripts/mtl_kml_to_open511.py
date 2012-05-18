@@ -1,12 +1,14 @@
+#coding: utf-8
 """
 A script to convert Ville de Montreal roadwork KML files, e.g. from
 http://depot.ville.montreal.qc.ca/info-travaux/data.kml
 to an Open511 XML file.
 """
 
+import datetime
 import hashlib
+import re
 import sys
-import tempfile
 
 from django.contrib.gis.gdal import DataSource
 from lxml import etree
@@ -64,6 +66,16 @@ def feature_to_open511_element(feature):
     if facultatif:
         rdev.detour = '\n\n'.join(_get_el_text(el) for el in facultatif)
 
+    if blob.cssselect('div#dates strong'):
+        try:
+            start_date = blob.xpath(u'div[@id="dates"]/strong[text()="Date de d\xe9but"]')[0].tail
+            end_date = blob.xpath(u'div[@id="dates"]/strong[text()="Date de fin"]')[0].tail
+            if start_date and end_date:
+                rdev.start_date = _fr_string_to_date(start_date)
+                rdev.end_date = _fr_string_to_date(end_date)
+        except IndexError:
+            pass
+
     return roadevent_to_xml_element(rdev)
 
 def kml_file_to_open511_element(filename):
@@ -83,6 +95,34 @@ def _get_el_text(el):
         if subel.tail:
             t += subel.tail
     return t
+
+FR_MONTHS = {
+    'janvier': 1,
+    u'février': 2,
+    'mars': 3,
+    'avril': 4,
+    'mai': 5,
+    'juin': 6,
+    'juillet': 7,
+    u'août': 8,
+    'septembre': 9,
+    'octobre': 10,
+    'novembre': 11,
+    u'décembre': 12
+}
+
+fr_date_re = re.compile(ur'(\d\d?) (%s) (\d{4})' % '|'.join(FR_MONTHS.keys()))
+
+def _fr_string_to_date(s):
+    match = fr_date_re.search(s)
+    if not match:
+        return None
+    return datetime.date(
+        int(match.group(3)),
+        FR_MONTHS[match.group(2)],
+        int(match.group(1))
+    )
+
 
 def main():
     filename = sys.argv[1]
