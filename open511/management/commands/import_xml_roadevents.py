@@ -27,8 +27,11 @@ class Command(BaseCommand):
 
         for event in root.xpath('RoadEvent'):
             try:
-                rdev = RoadEvent()
-                rdev.source_id = event.get('id')
+                source_id = event.get('id')
+                try:
+                    rdev = RoadEvent.objects.get(source_id=source_id)
+                except RoadEvent.DoesNotExist:
+                    rdev = RoadEvent(source_id=source_id)
                 logger.info("Importing event %s" % rdev.source_id)
                 rdev.jurisdiction = rdev.source_id.split(':')[0]
 
