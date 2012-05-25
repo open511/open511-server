@@ -15,6 +15,9 @@ setup(
         'lxml',
     ],
     entry_points = {
-        'console_scripts': ['mtl_kml_to_open511 = open511.scripts.mtl_kml_to_open511:main']
+        'console_scripts': [
+            'mtl_kml_to_open511 = open511.scripts.mtl_kml_to_open511:main',
+            'scrape_mtq_to_open511 = open511.scripts.scrape_mtq_to_open511:main',
+        ]
     },
 )
