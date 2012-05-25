@@ -3,6 +3,8 @@ from open511.utils.views import JSONView
 
 class RoadEventListView(JSONView):
 
+    allow_jsonp = True
+
     def get(self, request):
         return [
             rdev.to_json_structure() for rdev in RoadEvent.objects.all()
