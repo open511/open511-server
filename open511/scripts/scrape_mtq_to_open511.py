@@ -57,7 +57,7 @@ def get_roadevent_from_summary(summary):
     resp = urllib2.urlopen(url)
     time.sleep(1)
 
-    root = lxml.html.fragment_fromstring(resp.read())
+    root = lxml.html.fragment_fromstring(resp.read().decode('utf8'))
     rdev.title = _get_text_from_elems(root.cssselect('#tdIdentification'))
     rdev.description = _get_text_from_elems(root.cssselect('#tdDescriptionEntrave,#tdDetail'))
     rdev.affected_roads = _get_text_from_elems(root.cssselect('#tdLocalisation'))
