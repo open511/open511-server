@@ -18,7 +18,8 @@ class RoadEvent(models.Model):
         ('3', _('Apocalyptic')),
     ]
     
-    source_id = models.CharField(max_length=100, blank=True, help_text=_('A unique ID for this event. Will be assigned automatically if left blank.'))
+    source_id = models.CharField(max_length=100, blank=True,
+        db_index=True, help_text=_('A unique ID for this event. Will be assigned automatically if left blank.'))
     jurisdiction = models.CharField(max_length=100, help_text=_('e.g. ville.montreal.qc.ca')) 
     title = models.CharField(blank=True, max_length=500)
     
