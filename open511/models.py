@@ -6,12 +6,11 @@ from django.core.serializers.json import simplejson as json
 from django.utils.translation import ugettext_lazy as _
 
 from lxml import etree
-from webob.acceptparse import AcceptLanguage
 
 from open511.fields import XMLField
 from open511.utils import serialization
+from open511.utils.language import DEFAULT_ACCEPT
 
-DEFAULT_ACCEPT = AcceptLanguage(settings.LANGUAGE_CODE + ', *;q=0.1')
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 
 
@@ -112,6 +111,7 @@ class RoadEvent(models.Model):
                 val = self.get_text_value(field.tag, accept=accept)
             else:
                 val = self.xml_elem.xpath(field.tag + '/text()')
+                val = val[0] if val else None
             if val not in [None, '']:
                 r[field.tag] = val
         return r
