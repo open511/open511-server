@@ -12,34 +12,38 @@ import sys
 
 from django.contrib.gis.gdal import DataSource
 from lxml import etree
+from lxml.builder import E
 import lxml.html
 
-from open511.utils.serialization import roadevent_to_xml_element, get_base_open511_element
+from open511.utils.serialization import geom_to_xml_element, get_base_open511_element
 
 JURISDICTION = 'converted.ville.montreal.qc.ca'
 
 ids_seen = set()
 
-class DummyRoadEvent(object):
-    pass
 
 def feature_to_open511_element(feature):
     """Transform an OGR Feature from the KML input into an XML Element for a RoadEvent."""
-    rdev = DummyRoadEvent()
-
-    rdev.geom = feature.geom
 
     # Using a hash of the geometry for an ID. For proper production use,
     # there'll probably have to be some code in the importer
     # that compares to existing entries in the DB to determine whether
     # this is new or modified...
     geom_hash = hashlib.md5(feature.geom.wkt).hexdigest()
-    rdev.source_id = JURISDICTION + ':' + geom_hash
-    while rdev.source_id in ids_seen:
-        rdev.source_id += 'x'
-    ids_seen.add(rdev.source_id)
+    id = JURISDICTION + ':' + geom_hash
+    while id in ids_seen:
+        id += 'x'
+    ids_seen.add(id)
 
-    rdev.title = feature.get('Name').decode('utf8')
+    elem = E.RoadEvent(id=id)
+
+    def set_val(tag, val):
+        if val not in (None, ''):
+            e = etree.Element(tag)
+            e.text = unicode(val)
+            elem.append(e)
+
+    set_val('Title', feature.get('Name').decode('utf8'))
 
     blob = lxml.html.fragment_fromstring(feature.get('Description').decode('utf8'),
         create_parent='content')
@@ -51,42 +55,48 @@ def feature_to_open511_element(feature):
         while el.tag == 'p':
             description_bits.append(_get_el_text(el))
             el = el.getnext()
-        rdev.description = '\n\n'.join(description_bits)
+        set_val('Description', '\n\n'.join(description_bits))
 
     localisation = blob.cssselect('div#localisation p')
     if localisation:
-        rdev.affected_roads = '\n\n'.join(_get_el_text(el) for el in localisation)
-        
+        set_val('AffectedRoads', '\n\n'.join(_get_el_text(el) for el in localisation))
+
     try:
-        rdev.external_url = blob.cssselect('#avis_residants a, #en_savoir_plus a')[0].get('href')
+        set_val('ExternalURL', blob.cssselect('#avis_residants a, #en_savoir_plus a')[0].get('href'))
     except IndexError:
         pass
-        
+
     facultatif = blob.cssselect('div#itineraire_facult p')
     if facultatif:
-        rdev.detour = '\n\n'.join(_get_el_text(el) for el in facultatif)
+        set_val('Detour', '\n\n'.join(_get_el_text(el) for el in facultatif))
 
     if blob.cssselect('div#dates strong'):
         try:
             start_date = blob.xpath(u'div[@id="dates"]/strong[text()="Date de d\xe9but"]')[0].tail
             end_date = blob.xpath(u'div[@id="dates"]/strong[text()="Date de fin"]')[0].tail
             if start_date and end_date:
-                rdev.start_date = _fr_string_to_date(start_date)
-                rdev.end_date = _fr_string_to_date(end_date)
+                set_val('StartDate', _fr_string_to_date(start_date))
+                set_val('EndDate', _fr_string_to_date(end_date))
         except IndexError:
             pass
 
-    return roadevent_to_xml_element(rdev)
+    elem.append(E.Geometry(
+        geom_to_xml_element(feature.geom)
+    ))
+
+    return elem
+
 
 def kml_file_to_open511_element(filename):
     """Transform a Montreal KML file, at filename, into an Element
     for the top-level <open511> element."""
     ds = DataSource(filename)
-    base_element = get_base_open511_element()
+    base_element = get_base_open511_element(lang='fr')
     for layer in ds:
         for feature in layer:
             base_element.append(feature_to_open511_element(feature))
     return base_element
+
 
 def _get_el_text(el):
     t = el.text if el.text else ''
@@ -112,6 +122,7 @@ FR_MONTHS = {
 }
 
 fr_date_re = re.compile(ur'(\d\d?) (%s) (\d{4})' % '|'.join(FR_MONTHS.keys()))
+
 
 def _fr_string_to_date(s):
     match = fr_date_re.search(s)
