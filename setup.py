@@ -13,6 +13,7 @@ setup(
     ],
     install_requires = [
         'lxml',
+        'webob'
     ],
     entry_points = {
         'console_scripts': [
