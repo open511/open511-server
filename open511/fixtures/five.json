@@ -1,0 +1,52 @@
+[
+    {
+        "pk": 1, 
+        "model": "open511.roadevent", 
+        "fields": {
+            "jurisdiction": "converted.ville.montreal.qc.ca", 
+            "geom": "LINESTRING (-73.6586093902588033 45.5703130353666026, -73.6572575569152974 45.5728966030848994, -73.6568713188170960 45.5737377390216025, -73.6563992500305034 45.5743836027081031)", 
+            "id": "56d67eaf8f8dab047f6f870078229b1e", 
+            "xml_data": "<RoadEvent xmlns:gml=\"http://www.opengis.net/gml\" xml:lang=\"fr\">\n    <Title>R&#233;fection de la chauss&#233;e</Title>\n    <AffectedRoads>Boulevard Henri-Bourassa (c&#244;t&#233; nord) entre Papineau et des Prairies</AffectedRoads>\n    <Description>Circulation maintenue dans les deux sens, mais ralentie vers l'ouest apr&#232;s l'heure de pointe du matin. Stationnement interdit dans la zone des travaux. Acc&#232;s aux r&#233;sidences et commerces maintenu.</Description>\n    <ExternalURL>http://ville.montreal.qc.ca/pls/portal/docs/PAGE/M_CHANTIER_FR/MEDIA/DOCUMENTS/20120419_1160_HENRI-BOURASSA_CI.PDF</ExternalURL>\n    <StartDate>2012-05-07</StartDate>\n    <EndDate>2012-06-03</EndDate>\n    </RoadEvent>\n  "
+        }
+    }, 
+    {
+        "pk": 2, 
+        "model": "open511.roadevent", 
+        "fields": {
+            "jurisdiction": "converted.ville.montreal.qc.ca", 
+            "geom": "POINT (-73.6569640999999962 45.5661765999999986)", 
+            "id": "36f11b23ac4d612f82977c418ef86bdf", 
+            "xml_data": "<RoadEvent xmlns:gml=\"http://www.opengis.net/gml\" xml:lang=\"fr\">\n    <Title>R&#233;fection de conduite d'aqueduc (r&#233;habilitation)</Title>\n    <AffectedRoads>Terrasse Garnier</AffectedRoads>\n    <Description>Acc&#232;s aux r&#233;sidences et aux commerces maintenu en tout temps. Stationnement interdit selon l'avancement des travaux.</Description>\n    <ExternalURL>http://ville.montreal.qc.ca/pls/portal/docs/PAGE/M_CHANTIER_FR/MEDIA/DOCUMENTS/20120501_R%C9HABILITATION_AHUNTSIC_GARNIER.PDF</ExternalURL>\n    <StartDate>2012-05-07</StartDate>\n    <EndDate>2012-07-29</EndDate>\n    </RoadEvent>\n  "
+        }
+    }, 
+    {
+        "pk": 3, 
+        "model": "open511.roadevent", 
+        "fields": {
+            "jurisdiction": "converted.ville.montreal.qc.ca", 
+            "geom": "LINESTRING (-73.7363290786743022 45.5239839291157011, -73.7389898300171041 45.5256075208070996, -73.7384426593780944 45.5252692764021987, -73.7398588657379008 45.5242319808789020, -73.7395799160003946 45.5239764123785022, -73.7391936779021933 45.5237884936229023, -73.7380027770995952 45.5247205644865005, -73.7377989292145060 45.5248784136680982, -73.7376701831818053 45.5248032474463997, -73.7373805046081969 45.5249911628123982, -73.7369298934936950 45.5252918260924986, -73.7376701831818053 45.5248032474463997, -73.7371551990509033 45.5244649982057012, -73.7387752532958984 45.5231570820059019)", 
+            "id": "2aaacf2f28b7e6c34442980a6698ce96", 
+            "xml_data": "<RoadEvent xmlns:gml=\"http://www.opengis.net/gml\" xml:lang=\"fr\">\n    <Title>R&#233;fection de conduite d'aqueduc (r&#233;habilitation)</Title>\n    <Description>Acc&#232;s maintenu aux r&#233;sidences et aux commerces en tout temps. Stationnement interdit selon l'avancement des travaux.</Description>\n    <ExternalURL>http://ville.montreal.qc.ca/pls/portal/docs/PAGE/M_CHANTIER_FR/MEDIA/DOCUMENTS/20120501_R%C9HABILITATION_AHUNTSIC.PDF</ExternalURL>\n    <StartDate>2012-05-07</StartDate>\n    <EndDate>2012-07-08</EndDate>\n    </RoadEvent>\n  "
+        }
+    }, 
+    {
+        "pk": 4, 
+        "model": "open511.roadevent", 
+        "fields": {
+            "jurisdiction": "converted.ville.montreal.qc.ca", 
+            "geom": "LINESTRING (-73.7143564224243022 45.5257728839982008, -73.7187981605530069 45.5273813914951972)", 
+            "id": "d048d9f367a2d5d36d6c4f978ec59e08", 
+            "xml_data": "<RoadEvent xmlns:gml=\"http://www.opengis.net/gml\" xml:lang=\"fr\">\n    <Title>R&#233;fection d'infrastructures souterraines</Title>\n    <Title xml:lang=\"en\">Underground infrastructure repair</Title>\n    <AffectedRoads>Boul. Laurentien, entre De Pontgrav&#233; et P&#233;rinault</AffectedRoads>\n    <Detour>Rue Lachapelle</Detour>\n    <ExternalURL>http://ville.montreal.qc.ca/pls/portal/docs/PAGE/M_CHANTIER_FR/MEDIA/DOCUMENTS/20120417_1109_LAURENTIEN_CI.PDF</ExternalURL>\n    <StartDate>2012-04-30</StartDate>\n    <EndDate>2012-08-31</EndDate>\n    </RoadEvent>\n  "
+        }
+    }, 
+    {
+        "pk": 5, 
+        "model": "open511.roadevent", 
+        "fields": {
+            "jurisdiction": "converted.ville.montreal.qc.ca", 
+            "geom": "LINESTRING (-73.6588025093079040 45.5385494787181031, -73.6554336547851989 45.5375725474961968)", 
+            "id": "7eb65e39ae52679760d141be14341b63", 
+            "xml_data": "<RoadEvent xmlns:gml=\"http://www.opengis.net/gml\" xml:lang=\"fr\">\n    <Title>Reconstruction de la chauss&#233;e et r&#233;fection des trottoirs</Title>\n    <AffectedRoads>Rue Meilleur entre les rues Chabanel et de Louvain</AffectedRoads>\n    <Description>Rue Meilleur,entre les rues Chabanel et de Louvain</Description>\n    <ExternalURL>http://ville.montreal.qc.ca/pls/portal/docs/PAGE/M_CHANTIER_FR/MEDIA/DOCUMENTS/AVIS_AUX_R%C9SIDANTS_RUE_MEILLEUR_ENTRE_LES_RUES_CHABANEL_ET_DE_LOUVAIN.PDF</ExternalURL>\n    <StartDate>2011-09-26</StartDate>\n    <EndDate>2012-09-30</EndDate>\n    </RoadEvent>\n  "
+        }
+    }
+]
