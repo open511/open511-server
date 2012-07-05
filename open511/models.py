@@ -1,55 +1,125 @@
+from copy import deepcopy
+
+from django.conf import settings
 from django.contrib.gis.db import models
+from django.core.serializers.json import simplejson as json
 from django.utils.translation import ugettext_lazy as _
 
+from lxml import etree
+from webob.acceptparse import AcceptLanguage
+
+from open511.fields import XMLField
 from open511.utils import serialization
 
+DEFAULT_ACCEPT = AcceptLanguage(settings.LANGUAGE_CODE + ', *;q=0.1')
+XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
+
+
 class RoadEvent(models.Model):
-    
-    EVENT_TYPES = [
-        ('RW', _('Road work')),
-        ('AC', _('Accident')),
-        ('WE', _('Weather')),
-        ('EV', _('Scheduled event (non-construction)')),
-    ]
-    
-    SEVERITY_CHOICES = [
-        ('1', _('Minor')),
-        ('2', _('Major')),
-        ('3', _('Apocalyptic')),
-    ]
-    
-    source_id = models.CharField(max_length=100, blank=True,
-        db_index=True, help_text=_('A unique ID for this event. Will be assigned automatically if left blank.'))
-    jurisdiction = models.CharField(max_length=100, help_text=_('e.g. ville.montreal.qc.ca')) 
-    title = models.CharField(blank=True, max_length=500)
-    
+
+    internal_id = models.AutoField(primary_key=True)
+
+    id = models.CharField(max_length=100, blank=True, db_index=True)
+    jurisdiction = models.CharField(max_length=100, help_text=_('e.g. ville.montreal.qc.ca'),
+        db_index=True)  # FK?
+
     geom = models.GeometryField(verbose_name=_('Geometry'))
+    xml_data = XMLField(default='<RoadEvent />')
 
-    affected_roads = models.TextField(blank=True) # human-readable
-    description = models.TextField(blank=True)
-    type = models.CharField(max_length=2, choices=EVENT_TYPES, default='RW')
-    severity = models.CharField(blank=True, max_length=2, choices=SEVERITY_CHOICES)
-    closed = models.NullBooleanField(blank=True, help_text=_('Is the road entirely closed? Choose No if the road remains partially open.'))
-    traffic_restrictions = models.TextField(blank=True, help_text=_('e.g. temporary speed limits, size/weight limits'))
-    detour = models.TextField(blank=True, help_text=_('Description of alternate route(s)'))
-    external_url = models.URLField(blank=True, help_text=_('If available, URL to a full record for this event on an external site.'))
+    class Meta(object):
+        unique_together = [
+            ('id', 'jurisdiction')
+        ]
 
-    # Dates and times will need to modeled in a much more complex way eventually,
-    # but this'll do for now.
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
-    
-    def __unicode__(self):
-        return self.title if self.title else self.source_id
-    
-    def save(self, *args, **kwargs):
-        super(RoadEvent, self).save(*args, **kwargs)
-        if not self.source_id:
-            self.source_id = self.id
-            self.save()
+    def save(self, force_insert=False, force_update=False, using=None):
+        self.xml_data = etree.tostring(self.xml_elem)
+        self.full_clean()
+        super(RoadEvent, self).save(force_insert=force_insert, force_update=force_update,
+            using=using)
+        if not self.id:
+            mgr = RoadEvent._default_manager
+            if using:
+                mgr = mgr.using(using)
+            mgr.filter(internal_id=self.internal_id).update(
+                id=self.internal_id
+            )
 
-    def to_xml_element(self):
-        return serialization.roadevent_to_xml_element(self)
+    @property
+    def compound_id(self):
+        return ':'.join([self.jurisdiction, self.id])
 
-    def to_json_structure(self):
-        return serialization.roadevent_to_json_structure(self)
+    __unicode__ = lambda s: s.compound_id
+
+    def _get_elem(self):
+        if not getattr(self, '_xml_elem', None):
+            self._xml_elem = etree.fromstring(self.xml_data)
+        return self._xml_elem
+
+    def _set_elem(self, new_elem):
+        self._xml_elem = new_elem
+
+    xml_elem = property(_get_elem, _set_elem)
+
+    @property
+    # memoize?
+    def default_lang(self):
+        lang = self.xml_elem.get(XML_LANG)
+        if not lang:
+            lang = settings.LANGUAGE_CODE
+        return lang
+
+    def _get_text_elems(self, xpath):
+        options = self.xml_elem.xpath(xpath)
+        result = {}
+        for option in options:
+            lang = option.get(XML_LANG)
+            if not lang:
+                lang = self.default_lang
+            result[lang] = option
+        return result
+
+    def get_text_value(self, name, accept=DEFAULT_ACCEPT):
+        """Returns the text value with the given name, obeying language preferences.
+
+        accept is a webob.acceptparse.AcceptLanguage object
+
+        Returns None if no suitable value is found."""
+        options = self._get_text_elems(name)
+        best_language = accept.best_match(options.keys())
+        if not best_language:
+            return None
+        return options[best_language].text
+
+    def set_text_value(self, tagname, value, lang=settings.LANGUAGE_CODE):
+        existing = self._get_text_elems(tagname)
+        if lang in existing:
+            elem = existing[lang]
+        else:
+            elem = etree.Element(tagname)
+            if lang != self.default_lang:
+                elem.set(XML_LANG, lang)
+            self.xml_elem.append(elem)
+        elem.text = value
+
+    def to_json_structure(self, accept=DEFAULT_ACCEPT):
+        r = {
+            'id': self.id,
+            'jurisdiction': self.jurisdiction,
+            'Geometry': json.loads(self.geom.geojson)
+        }
+        for field in serialization.ELEMENTS:
+            if field.type == 'TEXT':
+                val = self.get_text_value(field.tag, accept=accept)
+            else:
+                val = self.xml_elem.xpath(field.tag + '/text()')
+            if val not in [None, '']:
+                r[field.tag] = val
+        return r
+
+    def to_full_xml_element(self):
+        el = deepcopy(self.xml_elem)
+        geom = etree.Element('Geometry')
+        geom.append(serialization.geom_to_xml_element(self.geom))
+        el.append(geom)
+        el.set('id', self.compound_id)
+        return el
