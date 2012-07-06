@@ -42,8 +42,16 @@ def get_list_of_chantiers(action='EntraveMajeure', bounds=ALL_QUEBEC_BOUNDS):
     params.update(bounds)
 
     url = BASE_LIST_URL + '?' + urllib.urlencode(params)
+
     resp = urllib2.urlopen(url)
-    return json.load(resp)
+
+    try: 
+      json_data = json.load(resp)
+    except ValueError:
+      print('Value error in the JSON load - Probably an invalid JSON feed\n')
+      json_data = '' 
+
+    return json_data
 
 def get_roadevent_from_summary(summary):
 
