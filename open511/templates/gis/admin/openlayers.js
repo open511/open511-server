@@ -84,22 +84,25 @@ OpenLayers.Projection.addTransform("EPSG:4326", "EPSG:3857", OpenLayers.Layer.Sp
 {{ module }}.getControls = function(lyr){
   {{ module }}.panel = new OpenLayers.Control.Panel({'displayClass': 'olControlEditingToolbar'});
   var nav = new OpenLayers.Control.Navigation();
-  var draw_ctl;
-  if ({{ module }}.is_linestring){
-    draw_ctl = new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'});
-  } else if ({{ module }}.is_polygon){
-    draw_ctl = new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'});
-  } else if ({{ module }}.is_point){
-    draw_ctl = new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'});
+  var draw_ctls = [];
+  var is_none = !{{ module }}.is_linestring && !{{ module }}.is_polygon && !{{ module }}.is_point;
+  if ({{ module }}.is_linestring || is_none){
+    draw_ctls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Path, {'displayClass': 'olControlDrawFeaturePath'}));
   }
+  if ({{ module }}.is_polygon || is_none){
+    draw_ctls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Polygon, {'displayClass': 'olControlDrawFeaturePolygon'}));
+  }
+  if ({{ module }}.is_point || is_none){
+    draw_ctls.push(new OpenLayers.Control.DrawFeature(lyr, OpenLayers.Handler.Point, {'displayClass': 'olControlDrawFeaturePoint'}));
+  }
+  {{ module }}.controls = [nav];
   if ({{ module }}.modifiable){
     var mod = new OpenLayers.Control.ModifyFeature(lyr, {'displayClass': 'olControlModifyFeature'});
-    {{ module }}.controls = [nav, draw_ctl, mod];
+    {{ module }}.controls = {{ module }}.controls.concat(draw_ctls);
+    {{ module }}.controls.push(mod);
   } else {
     if(!lyr.features.length){
-      {{ module }}.controls = [nav, draw_ctl];
-    } else {
-      {{ module }}.controls = [nav];
+      {{ module }}.controls = {{ module }}.controls.concat(draw_ctls);
     }
   }
 }
@@ -125,17 +128,17 @@ OpenLayers.Projection.addTransform("EPSG:4326", "EPSG:3857", OpenLayers.Layer.Sp
       var admin_geom = {{ module }}.read_wkt(wkt);
       {{ module }}.write_wkt(admin_geom);
       if ({{ module }}.is_collection){
-  // If geometry collection, add each component individually so they may be
-  // edited individually.
-  for (var i = 0; i < {{ module }}.num_geom; i++){
-    {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);
-  }
+        //If geometry collection, add each component individually so they may be
+        // edited individually.
+        for (var i = 0; i < {{ module }}.num_geom; i++){
+          {{ module }}.layers.vector.addFeatures([new OpenLayers.Feature.Vector(admin_geom.geometry.components[i].clone())]);
+        }
       } else {
-  {{ module }}.layers.vector.addFeatures([admin_geom]);
+        {{ module }}.layers.vector.addFeatures([admin_geom]);
       }
       // Zooming to the bounds.
       {{ module }}.map.zoomToExtent(admin_geom.geometry.getBounds());
-      if ({{ module }}.is_point){
+      if ({{ module }}.is_point || wkt.substr(0, 5) === 'POINT'){
           {{ module }}.map.zoomTo({{ point_zoom }});
       }
     } else {
