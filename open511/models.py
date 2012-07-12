@@ -11,6 +11,7 @@ from open511.fields import XMLField
 from open511.utils import serialization
 from open511.utils.language import DEFAULT_ACCEPT
 
+
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 
 
@@ -98,7 +99,23 @@ class RoadEvent(models.Model):
             if lang != self.default_lang:
                 elem.set(XML_LANG, lang)
             self.xml_elem.append(elem)
-        elem.text = value
+        if value:
+            elem.text = value
+        else:
+            self.xml_elem.remove(elem)
+
+    def set_tag_value(self, tagname, value):
+        existing = self.xml_elem.xpath(tagname)
+        assert len(existing) < 2
+        if existing:
+            el = existing[0]
+        else:
+            el = etree.Element(tagname)
+            self.xml_elem.append(el)
+        if value in (None, ''):
+            self.xml_elem.remove(el)
+        else:
+            el.text = unicode(value)
 
     def to_json_structure(self, accept=DEFAULT_ACCEPT):
         r = {
@@ -123,3 +140,7 @@ class RoadEvent(models.Model):
         el.append(geom)
         el.set('id', self.compound_id)
         return el
+
+    @property
+    def title(self):
+        return self.get_text_value('Title')
