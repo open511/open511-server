@@ -42,8 +42,14 @@ def get_list_of_chantiers(action='EntraveMajeure', bounds=ALL_QUEBEC_BOUNDS):
     params.update(bounds)
 
     url = BASE_LIST_URL + '?' + urllib.urlencode(params)
+
     resp = urllib2.urlopen(url)
-    return json.load(resp)
+
+    try:
+        return json.load(resp)
+    except ValueError as e:
+        logger.error("Could not load JSON from %s: %r" % (url, e))
+        return []
 
 def get_roadevent_from_summary(summary):
 
@@ -73,6 +79,8 @@ def get_roadevent_from_summary(summary):
     return rdev
 
 def main():
+
+    logging.basicConfig()
 
     base = get_base_open511_element()
 
@@ -105,9 +113,3 @@ def _get_text_from_elems(elems):
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
