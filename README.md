@@ -8,4 +8,4 @@ For the moment, this package hacks the Django admin just until it works. We don'
 
 * You need to restrict settings.LANGUAGES to the languages you want to support
 * 'open511' needs to be higher up in settings.INSTALLED_APPS than django.contrib.admin and django.contrib.gis
-* In django.contrib.admin.widgets, lines 35 & 36 (if value.geom_type != self.geom_type) need to be commented out
+* In django.contrib.gis.admin.widgets, lines 35 & 36 (if value.geom_type != self.geom_type) need to be commented out
