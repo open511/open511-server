@@ -2,29 +2,62 @@ from copy import deepcopy
 
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.core import urlresolvers
 from django.core.serializers.json import simplejson as json
 from django.utils.translation import ugettext_lazy as _
 
 from lxml import etree
 
 from open511.fields import XMLField
-from open511.utils import serialization
+from open511.utils.serialization import ELEMENTS, geom_to_xml_element, XML_LANG, ATOM_LINK
 from open511.utils.language import DEFAULT_ACCEPT
 
 
-XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
+class _Open511Model(models.Model):
+
+    @property
+    def url(self):
+        if getattr(self, 'external_url', None):
+            return self.external_url
+        return self.get_absolute_url()
+
+    @property
+    def full_url(self):
+        url = self.url
+        if url.startswith('/'):
+            return settings.OPEN511_BASE_URL + url
+        return url
+
+    class Meta(object):
+        abstract = True
 
 
-class RoadEvent(models.Model):
+class Jurisdiction(_Open511Model):
+
+    slug = models.SlugField()
+    name = models.CharField(max_length=500)
+
+    external_url = models.URLField(blank=True)
+
+    xml_data = XMLField(default='<jurisdiction />')
+
+    def __unicode__(self):
+        return self.slug
+
+    def get_absolute_url(self):
+        return urlresolvers.reverse('open511_jurisdiction', kwargs={'slug': self.slug})
+
+class RoadEvent(_Open511Model):
 
     internal_id = models.AutoField(primary_key=True)
 
     id = models.CharField(max_length=100, blank=True, db_index=True)
-    jurisdiction = models.CharField(max_length=100, help_text=_('e.g. ville.montreal.qc.ca'),
-        db_index=True)  # FK?
+    jurisdiction = models.ForeignKey(Jurisdiction)
+
+    external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'))
-    xml_data = XMLField(default='<RoadEvent />')
+    xml_data = XMLField(default='<roadEvent />')
 
     class Meta(object):
         unique_together = [
@@ -44,11 +77,14 @@ class RoadEvent(models.Model):
                 id=self.internal_id
             )
 
-    @property
-    def compound_id(self):
-        return ':'.join([self.jurisdiction, self.id])
+    def __unicode__(self):
+        return u"%s (%s)" % (self.id, self.jurisdiction)
 
-    __unicode__ = lambda s: s.compound_id
+    def get_absolute_url(self):
+        return urlresolvers.reverse('open511_roadevent', kwargs={
+            'jurisdiction_slug': self.jurisdiction.slug,
+            'id': self.id}
+        )
 
     def _get_elem(self):
         if not getattr(self, '_xml_elem', None):
@@ -123,7 +159,7 @@ class RoadEvent(models.Model):
             'jurisdiction': self.jurisdiction,
             'Geometry': json.loads(self.geom.geojson)
         }
-        for field in serialization.ELEMENTS:
+        for field in ELEMENTS:
             if field.type == 'TEXT':
                 val = self.get_text_value(field.tag, accept=accept)
             else:
@@ -136,11 +172,25 @@ class RoadEvent(models.Model):
     def to_full_xml_element(self):
         el = deepcopy(self.xml_elem)
         geom = etree.Element('Geometry')
-        geom.append(serialization.geom_to_xml_element(self.geom))
+        geom.append(geom_to_xml_element(self.geom))
         el.append(geom)
-        el.set('id', self.compound_id)
+
+        link = etree.Element(ATOM_LINK)
+        link.set('rel', 'jurisdiction')
+        link.set('href', self.jurisdiction.full_url)
+        el.insert(0, link)
+
+        link = etree.Element(ATOM_LINK)
+        link.set('rel', 'self')
+        link.set('href', self.url)
+        el.insert(0, link)
+
         return el
 
+    # method to return full XML element conforming to language list
+    # option: return ALL languages matching accept list?
+    # option: return BEST option in all cases
+
     @property
-    def title(self):
-        return self.get_text_value('Title')
+    def headline(self):
+        return self.get_text_value('headline')

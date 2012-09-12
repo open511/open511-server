@@ -10,7 +10,7 @@ from django.utils.translation import string_concat
 
 from webob.acceptparse import AcceptLanguage
 
-from open511.models import RoadEvent
+from open511.models import RoadEvent, Jurisdiction
 from open511.utils.serialization import ELEMENTS
 
 
@@ -44,7 +44,7 @@ class BaseRoadEventForm(forms.BaseModelForm):
 
 
 class RoadEventAdmin(admin.OSMGeoAdmin):
-    list_display = ['title', 'jurisdiction']
+    list_display = ['headline', 'jurisdiction']
     #list_filter = ['jurisdiction', 'start_date', 'end_date']
     #form = get_form()
 
@@ -102,3 +102,4 @@ class RoadEventAdmin(admin.OSMGeoAdmin):
         return cls
 
 admin.site.register(RoadEvent, RoadEventAdmin)
+admin.site.register(Jurisdiction)

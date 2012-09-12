@@ -1,5 +1,6 @@
 import datetime
 import logging
+from optparse import make_option
 import sys
 
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
@@ -7,14 +8,19 @@ from django.core.management.base import BaseCommand
 
 from lxml import etree
 
-from open511.models import RoadEvent, XML_LANG
+from open511.models import RoadEvent, Jurisdiction
 from open511.utils.postgis import gml_to_ewkt
-from open511.utils.serialization import ELEMENTS
+from open511.utils.serialization import ELEMENTS, XML_LANG
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
+
+    option_list = BaseCommand.option_list + (
+        make_option('-j', '--jurisdiction', action='store', dest='jurisdiction_slug',
+            help='The slug of the jurisdiction to import items into.'),
+    )
 
     element_lookup = dict(
         (e[1], e[0]) for e in ELEMENTS
@@ -22,28 +28,59 @@ class Command(BaseCommand):
 
     def handle(self, filename=sys.stdin, **options):
         root = etree.parse(filename).getroot()
-        assert root.tag == 'Open511'
+        assert root.tag == 'open511'
 
         created = []
 
-        for event in root.xpath('RoadEvent'):
+        if options['jurisdiction_slug']:
+            default_jurisdiction = Jurisdiction.objects.get(slug=options['jurisdiction_slug'])
+        elif Jurisdiction.objects.filter(external_url='').count() == 1:
+            default_jurisdiction = Jurisdiction.objects.get(external_url='')
+        else:
+            default_jurisdiction = None
+
+        for event in root.xpath('roadEvent'):
             try:
-                jurisdiction, dummy, id = event.get('id').partition(':')
+
+                # Identify the jurisdiction
+                external_jurisdiction = event.xpath('atom:link[rel=jurisdiction]',
+                    namespaces=event.nsmap)
+                if external_jurisdiction:
+                    jurisdiction = Jurisdiction.objects.get(external_url=external_jurisdiction[0].text)
+                    event.remove(external_jurisdiction[0])
+                elif default_jurisdiction:
+                    jurisdiction = default_jurisdiction
+                else:
+                    raise Exception("No jurisdiction provided")
+
+                self_link = event.xpath('atom:link[rel=self]',
+                    namespaces=event.nsmap)
+                if self_link:
+                    external_url = self_link[0].text
+                    id = filter(None, external_url.split('/'))[-1]
+                    event.remove(self_link[0])
+                else:
+                    external_url = ''
+                    id = event.get('id')
+                if not id:
+                    raise Exception("No ID provided")
+
                 try:
                     rdev = RoadEvent.objects.get(id=id, jurisdiction=jurisdiction)
                 except RoadEvent.DoesNotExist:
-                    rdev = RoadEvent(id=id, jurisdiction=jurisdiction)
+                    rdev = RoadEvent(id=id, jurisdiction=jurisdiction, external_url=external_url)
                 logger.info("Importing event %s" % rdev.id)
 
                 # Extract the geometry
-                geometry = event.xpath('Geometry')[0]
+                geometry = event.xpath('geometry')[0]
                 gml = etree.tostring(geometry[0])
                 ewkt = gml_to_ewkt(gml, force_2D=True)
                 rdev.geom = geos_geom_from_string(ewkt)
                 event.remove(geometry)
 
                 # Remove the ID from the stored XML (we keep it in the table)
-                del event.attrib['id']
+                if 'id' in event.attrib:
+                    del event.attrib['id']
 
                 # Push down the default language if necessary
                 if not event.get(XML_LANG):

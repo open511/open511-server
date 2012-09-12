@@ -5,47 +5,68 @@ from django.core.serializers.json import simplejson as json
 from django.http import HttpResponse
 from django.views.generic import View
 
-class JSONView(View):
-    """Base view that serializes responses as JSON."""
+from lxml import etree
 
-    # Subclasses: set this to True to allow JSONP (cross-domain) requests
-    allow_jsonp = False
+from open511.utils.serialization import xml_to_json, get_base_open511_element
 
-    def __init__(self):
-        super(JSONView,self).__init__()
-        self.content_type = 'application/json'
+
+class APIView(View):
+
+    allow_jsonp = True
 
     def dispatch(self, request, *args, **kwargs):
-        result = super(JSONView, self).dispatch(request, *args, **kwargs)
-        indent_response = 4 if request.GET.get('indent') else None
+        result = super(APIView, self).dispatch(request, *args, **kwargs)
 
         if isinstance(result, HttpResponse):
             return result
-        resp = HttpResponse(content_type=self.content_type)
-        callback = ''
-        if self.allow_jsonp and 'callback' in request.GET:
-            callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])
-            resp.write(callback + '(')
-        json.dump({'status': 'ok', 'content': result}, resp, indent=indent_response)
-        if callback:
-            resp.write(');')
 
-        if settings.DEBUG and 'html' in request.GET:
-            resp = HttpResponse('<html><body>' + resp.content + '</body></html>')
-        return resp
+        pretty = bool(request.GET.get('indent'))
 
-    def custom_response(self, status, content, content_key='content', status_code=200):
-        resp = HttpResponse(content_type=self.content_type)
-        resp.status_code = status_code
-        json.dump({
-            'status': status,
-            content_key: content
-        }, resp)
-        return resp
+        output_format = 'xml'
+        if request.GET.get('format') == 'json':
+            # FIXME use Accept headers
+            output_format = 'json'
 
-    def dispatch_error(self, error_messages):
-        return self.custom_response(
-            status='error',
-            content=error_messages,
-            content_key='errors'
-        )
+        if output_format == 'xml':
+            base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
+            if hasattr(result, 'resource'):
+                base.append(result.resource)
+            elif hasattr(result, 'resource_list'):
+                base.extend(result.resource_list)
+            return HttpResponse(
+                etree.tostring(base, pretty_print=pretty),
+                content_type='application/xml')
+        elif output_format == 'json':
+            resp = HttpResponse(content_type='application/json')
+            if hasattr(result, 'resource'):
+                content = xml_to_json(result.resource)
+            elif hasattr(result, 'resource_list'):
+                content = [xml_to_json(r) for r in result.resource_list]
+            callback = ''
+            if self.allow_jsonp and 'callback' in request.GET:
+                callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])
+                resp.write(callback + '(')
+            json.dump({
+                'status': 'ok',
+                'content': content
+                }, resp, indent=4 if pretty else None)
+            if callback:
+                resp.write(');')
+
+            if settings.DEBUG and 'html' in request.GET:
+                resp = HttpResponse('<html><body>' + resp.content + '</body></html>')
+
+            return resp
+
+
+class Resource(object):
+
+    def __init__(self, resource):
+        self.resource = resource
+
+
+class ResourceList(object):
+
+    def __init__(self, resource_list):
+        self.resource_list = resource_list
+        # pagination info...
