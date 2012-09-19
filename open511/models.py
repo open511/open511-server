@@ -1,16 +1,22 @@
 from copy import deepcopy
 import datetime
+from urlparse import urljoin
 
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import fromstr as geos_geom_from_string
 from django.core import urlresolvers
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc
 
+import dateutil.parser
 from lxml import etree
 from lxml.builder import E
+import requests
 
 from open511.fields import XMLField
+from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
     geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin)
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
@@ -42,10 +48,61 @@ class _Open511Model(models.Model):
         abstract = True
 
 
+class JurisdictionManager(models.Manager):
+
+    def get_or_create_from_url(self, url):
+        try:
+            return self.get(external_url=url)
+        except ObjectDoesNotExist:
+            if url.startswith(settings.OPEN511_BASE_URL):
+                slug = filter(None, url.split('/'))[-1]
+                try:
+                    return self.get(slug=slug)
+                except ObjectDoesNotExist:
+                    pass
+
+        # Looks like we need to create a new jurisdiction
+        req = requests.get(url)
+        root = etree.fromstring(req.content)
+        jur = root.xpath('jurisdiction')[0]
+        self_url = jur.xpath('atom:link[@rel="self"]/@href', namespaces=jur.nsmap)[0]
+        if self_url != url:
+            return self.get_or_create_from_url(self_url)
+
+        return self.update_or_create_from_xml(jur)
+
+    def update_or_create_from_xml(self, xml_jurisdiction):
+        self_link = xml_jurisdiction.xpath('atom:link[@rel="self"]',
+            namespaces=xml_jurisdiction.nsmap)[0]
+        try:
+            jur = self.get(external_url=self_link.get('href'))
+        except ObjectDoesNotExist:
+            slug = filter(None, self_link.get('href').split('/'))[-1]
+            if self.filter(slug=slug).exists():
+                raise Exception(u"There's already a jurisdiction with slug %s, but with URL %s instead of %s."
+                    % (slug, self.get(slug=slug).full_url, self_link.get('href')))
+            jur = self.model(
+                external_url=self_link.get('href'),
+                slug=slug
+            )
+
+            try:
+                created = xml_jurisdiction.xpath('creationDate/text()')[0]
+                jur.created = dateutil.parser.parse(created)
+            except IndexError:
+                pass
+
+        for path in ['status', 'creationDate', 'lastUpdate', 'atom:link[@rel="self"]']:
+            for elem in xml_jurisdiction.xpath(path, namespaces=xml_jurisdiction.nsmap):
+                xml_jurisdiction.remove(elem)
+        jur.xml_elem = xml_jurisdiction
+        jur.save()
+        return jur
+
+
 class Jurisdiction(_Open511Model, XMLModelMixin):
 
     slug = models.SlugField()
-    name = models.CharField(max_length=500)  # should be stored in XML for multiling
 
     external_url = models.URLField(blank=True)
 
@@ -53,17 +110,22 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
     xml_data = XMLField(default='<jurisdiction />')
 
+    objects = JurisdictionManager()
+
     def __unicode__(self):
         return self.slug
 
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_jurisdiction', kwargs={'slug': self.slug})
 
+    def save(self, force_insert=False, force_update=False, using=None):
+        self.xml_data = etree.tostring(self.xml_elem)
+        self.full_clean()
+        super(Jurisdiction, self).save(force_insert=force_insert, force_update=force_update,
+            using=using)
+
     def to_full_xml_element(self, accept_language=None):
         el = deepcopy(self.xml_elem)
-
-        # FIXME shouldn't be a DB field
-        el.append(E.name(self.name))
 
         link = etree.Element(ATOM_LINK)
         link.set('rel', 'self')
@@ -74,6 +136,78 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         el.append(E.lastUpdate(self.updated.isoformat()))
 
         return el
+
+
+class RoadEventManager(models.Manager):
+
+    def update_or_create_from_xml(self, event,
+            default_jurisdiction=None, default_lang=settings.LANGUAGE_CODE, base_url=''):
+        # Identify the jurisdiction
+        external_jurisdiction = event.xpath('atom:link[@rel="jurisdiction"]',
+            namespaces=event.nsmap)
+        if external_jurisdiction:
+            jurisdiction = Jurisdiction.objects.get_or_create_from_url(external_jurisdiction[0].get('href'))
+            event.remove(external_jurisdiction[0])
+        elif default_jurisdiction:
+            jurisdiction = default_jurisdiction
+        else:
+            raise Exception("No jurisdiction provided")
+
+        self_link = event.xpath('atom:link[@rel="self"]',
+            namespaces=event.nsmap)
+        if self_link:
+            external_url = urljoin(base_url, self_link[0].get('href'))
+            id = filter(None, external_url.split('/'))[-1]
+            event.remove(self_link[0])
+        else:
+            external_url = ''
+            id = event.get('id')
+        if not id:
+            raise Exception("No ID provided")
+
+        try:
+            rdev = self.get(id=id, jurisdiction=jurisdiction)
+        except RoadEvent.DoesNotExist:
+            rdev = self.model(id=id, jurisdiction=jurisdiction, external_url=external_url)
+
+        # Extract the geometry
+        geometry = event.xpath('geometry')[0]
+        gml = etree.tostring(geometry[0])
+        ewkt = gml_to_ewkt(gml, force_2D=True)
+        rdev.geom = geos_geom_from_string(ewkt)
+
+        # And regenerate the GML so it's consistent with the PostGIS representation
+        event.remove(geometry)
+        event.append(E.geometry(geom_to_xml_element(rdev.geom)))
+
+        # Remove the ID from the stored XML (we keep it in the table)
+        if 'id' in event.attrib:
+            del event.attrib['id']
+
+        status = event.xpath('status')
+        if status:
+            if status[0].text == 'archived':
+                rdev.active = False
+
+        try:
+            created = event.xpath('creationDate/text()')[0]
+            created = dateutil.parser.parse(created)
+            if (not rdev.created) or created < rdev.created:
+                rdev.created = created
+        except IndexError:
+            pass
+
+        for path in ['status', 'creationDate', 'lastUpdate']:
+            for elem in event.xpath(path):
+                event.remove(elem)
+
+        # Push down the default language if necessary
+        if not event.get(XML_LANG):
+            event.set(XML_LANG, default_lang)
+
+        rdev.xml_elem = event
+        rdev.save()
+        return rdev
 
 
 class RoadEvent(_Open511Model, XMLModelMixin):
@@ -88,6 +222,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     geom = models.GeometryField(verbose_name=_('Geometry'))
     xml_data = XMLField(default='<roadEvent />')
+
+    objects = RoadEventManager()
 
     class Meta(object):
         unique_together = [

@@ -13,7 +13,9 @@ setup(
     ],
     install_requires = [
         'lxml',
-        'webob'
+        'webob',
+        'python-dateutil',
+        'requests',
     ],
     entry_points = {
         'console_scripts': [
