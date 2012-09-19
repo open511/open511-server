@@ -28,8 +28,6 @@ ALL_QUEBEC_BOUNDS = {
     'yMax': '62.5'
 }
 
-JURISDICTION = 'converted.quebec511.gouv.qc.ca'
-
 BASE_LIST_URL = 'http://carte.quebec511.gouv.qc.ca/fr/Element.ashx'
 BASE_DETAIL_URL = 'http://carte.quebec511.gouv.qc.ca/fr/Fenetres/FenetreTravailRoutier.aspx?id='
 
@@ -53,10 +51,10 @@ def get_list_of_chantiers(action='EntraveMajeure', bounds=ALL_QUEBEC_BOUNDS):
 
 def get_roadevent_from_summary(summary):
 
-    elem = E.RoadEvent(id=JURISDICTION + ':' + summary['id'])
+    elem = E.roadEvent(id=summary['id'])
 
     elem.append(
-        E.Geometry(
+        E.geometry(
             geom_to_xml_element(
                 Point(float(summary['lng']), float(summary['lat']), srid=4326)
             )
@@ -73,18 +71,31 @@ def get_roadevent_from_summary(summary):
             e.text = unicode(val)
             elem.append(e)
 
+    set_val('status', 'active')
+    set_val('eventType', 'Roadwork')
+
     root = lxml.html.fragment_fromstring(resp.read().decode('utf8'))
-    set_val('Title', _get_text_from_elems(root.cssselect('#tdIdentification')))
-    set_val('Description', _get_text_from_elems(root.cssselect('#tdDescriptionEntrave,#tdDetail')))
-    set_val('AffectedRoads', _get_text_from_elems(root.cssselect('#tdLocalisation')))
-    set_val('TrafficRestrictions', _get_text_from_elems(root.cssselect('#tdRestrictionCamionnage')))
+    set_val('headline', _get_text_from_elems(root.cssselect('#tdIdentification')))
+
+    description = _get_text_from_elems(root.cssselect('#tdDescriptionEntrave,#tdDetail'))
+    affected_roads = _get_text_from_elems(root.cssselect('#tdLocalisation'))
+    traffic_restrictions = _get_text_from_elems(root.cssselect('#tdRestrictionCamionnage'))
+
+    if affected_roads:
+        description += u'\n\nLocalisation: ' + affected_roads
+    if traffic_restrictions:
+        description += u'\n\nRestrictions: ' + traffic_restrictions
+    set_val('description', description)
 
     start_date = _get_text_from_elems(root.cssselect('#tdDebut'))
     end_date = _get_text_from_elems(root.cssselect('#tdFin'))
-    if start_date:
-        set_val('StartDate', _str_to_date(start_date))
-    if end_date:
-        set_val('EndDate', _str_to_date(end_date))
+    if start_date or end_date:
+        sked = E.schedule()
+        if start_date:
+            sked.append(E.startDate(unicode(_str_to_date(start_date))))
+        if end_date:
+            sked.append(E.endDate(unicode(_str_to_date(end_date))))
+        elem.append(sked)
 
     return elem
 

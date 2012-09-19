@@ -7,6 +7,7 @@ from django.views.generic import View
 
 from lxml import etree
 
+from open511.utils.http import accept_from_request
 from open511.utils.serialization import xml_to_json, get_base_open511_element
 
 
@@ -14,7 +15,16 @@ class APIView(View):
 
     allow_jsonp = True
 
+    potential_response_formats = ['application/xml', 'application/json']
+
+    def determine_response_format(self, request):
+        accept = accept_from_request(request)
+        return accept.best_match(self.potential_response_formats)
+
     def dispatch(self, request, *args, **kwargs):
+
+        request.response_format = self.determine_response_format(request)
+
         result = super(APIView, self).dispatch(request, *args, **kwargs)
 
         if isinstance(result, HttpResponse):
@@ -22,12 +32,7 @@ class APIView(View):
 
         pretty = bool(request.GET.get('indent'))
 
-        output_format = 'xml'
-        if request.GET.get('format') == 'json':
-            # FIXME use Accept headers
-            output_format = 'json'
-
-        if output_format == 'xml':
+        if request.response_format == 'application/xml':
             base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
             if hasattr(result, 'resource'):
                 base.append(result.resource)
@@ -36,7 +41,7 @@ class APIView(View):
             return HttpResponse(
                 etree.tostring(base, pretty_print=pretty),
                 content_type='application/xml')
-        elif output_format == 'json':
+        elif request.response_format == 'application/json':
             resp = HttpResponse(content_type='application/json')
             if hasattr(result, 'resource'):
                 content = xml_to_json(result.resource)

@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
 from open511.models import RoadEvent
-from open511.utils.language import accept_language_from_request
+from open511.utils.http import accept_language_from_request
 from open511.utils.views import APIView, Resource, ResourceList
 
 
@@ -11,9 +11,14 @@ class RoadEventListView(APIView):
     allow_jsonp = True
 
     def get(self, request):
-        accept = accept_language_from_request(request)
+        if request.response_format == 'application/xml':
+            # If we're outputting XML, don't prune languages by default
+            accept_language = accept_language_from_request(request, default=None)
+        else:
+            accept_language = accept_language_from_request(request)
         resources = [
-            rdev.to_full_xml_element() for rdev in RoadEvent.objects.all()
+            rdev.to_full_xml_element(accept_language=accept_language)
+            for rdev in RoadEvent.objects.all()
         ]
         return ResourceList(resources)
 

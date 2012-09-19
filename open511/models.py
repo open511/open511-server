@@ -1,19 +1,26 @@
 from copy import deepcopy
+import datetime
 
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.core import urlresolvers
 from django.core.serializers.json import simplejson as json
 from django.utils.translation import ugettext_lazy as _
+from django.utils.timezone import utc
 
 from lxml import etree
+from lxml.builder import E
 
 from open511.fields import XMLField
-from open511.utils.serialization import ELEMENTS, geom_to_xml_element, XML_LANG, ATOM_LINK
-from open511.utils.language import DEFAULT_ACCEPT
+from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
+    geom_to_xml_element, XML_LANG, ATOM_LINK)
+from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
 
 class _Open511Model(models.Model):
+
+    created = models.DateTimeField(default=lambda: datetime.datetime.now(utc))
+    updated = models.DateTimeField(default=lambda: datetime.datetime.now(utc))
 
     @property
     def url(self):
@@ -27,6 +34,10 @@ class _Open511Model(models.Model):
         if url.startswith('/'):
             return settings.OPEN511_BASE_URL + url
         return url
+
+    def save(self, *args, **kwargs):
+        self.updated = datetime.datetime.now(utc)
+        return super(_Open511Model, self).save(*args, **kwargs)
 
     class Meta(object):
         abstract = True
@@ -47,9 +58,11 @@ class Jurisdiction(_Open511Model):
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_jurisdiction', kwargs={'slug': self.slug})
 
+
 class RoadEvent(_Open511Model):
 
     internal_id = models.AutoField(primary_key=True)
+    active = models.BooleanField(default=True)
 
     id = models.CharField(max_length=100, blank=True, db_index=True)
     jurisdiction = models.ForeignKey(Jurisdiction)
@@ -104,8 +117,10 @@ class RoadEvent(_Open511Model):
             lang = settings.LANGUAGE_CODE
         return lang
 
-    def _get_text_elems(self, xpath):
-        options = self.xml_elem.xpath(xpath)
+    def _get_text_elems(self, xpath, root=None):
+        if not root:
+            root = self.xml_elem
+        options = root.xpath(xpath)
         result = {}
         for option in options:
             lang = option.get(XML_LANG)
@@ -114,7 +129,7 @@ class RoadEvent(_Open511Model):
             result[lang] = option
         return result
 
-    def get_text_value(self, name, accept=DEFAULT_ACCEPT):
+    def get_text_value(self, name, accept=DEFAULT_ACCEPT_LANGUAGE):
         """Returns the text value with the given name, obeying language preferences.
 
         accept is a webob.acceptparse.AcceptLanguage object
@@ -153,27 +168,30 @@ class RoadEvent(_Open511Model):
         else:
             el.text = unicode(value)
 
-    def to_json_structure(self, accept=DEFAULT_ACCEPT):
-        r = {
-            'id': self.id,
-            'jurisdiction': self.jurisdiction,
-            'Geometry': json.loads(self.geom.geojson)
-        }
-        for field in ELEMENTS:
-            if field.type == 'TEXT':
-                val = self.get_text_value(field.tag, accept=accept)
-            else:
-                val = self.xml_elem.xpath(field.tag + '/text()')
-                val = val[0] if val else None
-            if val not in [None, '']:
-                r[field.tag] = val
-        return r
+    def prune_languages(self, parent, accept=DEFAULT_ACCEPT_LANGUAGE):
+        """Remove all free-text elements that don't find with the provided
+        Accept-Language options.
 
-    def to_full_xml_element(self):
+        parent - an lxml Element from which items will be pruned
+        accept - a webob AcceptLanguage object"""
+
+        rejects = set()
+        for child in parent:
+            if len(child):
+                self.prune_languages(child, accept=accept)
+            elif (child not in rejects
+                    and child.tag in ELEMENTS_LOOKUP
+                    and ELEMENTS_LOOKUP[child.tag].type == 'TEXT'):
+                options = self._get_text_elems(child.tag, root=parent)
+                best_option = options.get(accept.best_match(options.keys()))
+                rejects |= set(o for o in options.values() if o != best_option)
+        for reject in rejects:
+            parent.remove(reject)
+
+    def to_full_xml_element(self, accept_language=None):
         el = deepcopy(self.xml_elem)
-        geom = etree.Element('Geometry')
-        geom.append(geom_to_xml_element(self.geom))
-        el.append(geom)
+
+        el.insert(0, E.status('active' if self.active else 'archived'))
 
         link = etree.Element(ATOM_LINK)
         link.set('rel', 'jurisdiction')
@@ -185,11 +203,13 @@ class RoadEvent(_Open511Model):
         link.set('href', self.url)
         el.insert(0, link)
 
-        return el
+        el.append(E.creationDate(self.created.isoformat()))
+        el.append(E.lastUpdate(self.updated.isoformat()))
 
-    # method to return full XML element conforming to language list
-    # option: return ALL languages matching accept list?
-    # option: return BEST option in all cases
+        if accept_language:
+            self.prune_languages(el, accept_language)
+
+        return el
 
     @property
     def headline(self):

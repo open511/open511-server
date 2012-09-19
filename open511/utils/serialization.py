@@ -39,6 +39,7 @@ ELEMENTS = [
     DataField('EndDate', 'DATE', _('End date')),
 ]
 
+ELEMENTS_LOOKUP = dict((f.tag, f) for f in ELEMENTS)
 
 def get_base_open511_element(lang=None, base=None):
     elem = etree.Element("open511", nsmap={

@@ -6,11 +6,13 @@ import sys
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
 from django.core.management.base import BaseCommand
 
+import dateutil.parser
 from lxml import etree
+from lxml.builder import E
 
 from open511.models import RoadEvent, Jurisdiction
 from open511.utils.postgis import gml_to_ewkt
-from open511.utils.serialization import ELEMENTS, XML_LANG
+from open511.utils.serialization import ELEMENTS, XML_LANG, geom_to_xml_element
 
 logger = logging.getLogger(__name__)
 
@@ -76,11 +78,28 @@ class Command(BaseCommand):
                 gml = etree.tostring(geometry[0])
                 ewkt = gml_to_ewkt(gml, force_2D=True)
                 rdev.geom = geos_geom_from_string(ewkt)
+
+                # And regenerate the GML so it's consistent with the PostGIS representation
                 event.remove(geometry)
+                event.append(E.geometry(geom_to_xml_element(rdev.geom)))
 
                 # Remove the ID from the stored XML (we keep it in the table)
                 if 'id' in event.attrib:
                     del event.attrib['id']
+
+                status = event.xpath('status')
+                if status:
+                    if status[0].text == 'archived':
+                        rdev.active = False
+                    event.remove(status[0])
+
+                try:
+                    created = event.xpath('creationDate/text()')[0]
+                    created = dateutil.parser.parse(created)
+                    if (not rdev.created) or created < rdev.created:
+                        rdev.created = created
+                except IndexError:
+                    pass
 
                 # Push down the default language if necessary
                 if not event.get(XML_LANG):

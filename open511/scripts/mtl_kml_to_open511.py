@@ -41,6 +41,9 @@ def feature_to_open511_element(feature):
             e.text = unicode(val)
             elem.append(e)
 
+    set_val('status', 'active')
+    set_val('eventType', 'Roadwork')
+
     set_val('headline', feature.get('Name').decode('utf8'))
 
     blob = lxml.html.fragment_fromstring(feature.get('Description').decode('utf8'),
