@@ -10,7 +10,7 @@ from django.views.generic import View
 
 from lxml import etree
 
-from open511.utils.http import accept_from_request
+from open511.utils.http import accept_from_request, accept_language_from_request
 from open511.utils.serialization import xml_to_json, get_base_open511_element
 
 
@@ -24,22 +24,28 @@ class APIView(View):
         accept = accept_from_request(request)
         return accept.best_match(self.potential_response_formats)
 
+    def determine_accept_language(self, request):
+        if request.response_format == 'application/xml':
+            # If we're outputting XML, don't prune languages by default
+            return accept_language_from_request(request, default=None)
+        else:
+            return accept_language_from_request(request)
+
     def dispatch(self, request, *args, **kwargs):
 
         pretty = bool(request.GET.get('indent'))
-
-
         request.response_format = self.determine_response_format(request)
         request.html_response = (request.response_format == 'text/html')
         if request.html_response:
             request.response_format = 'application/xml'
             pretty = True
 
+        request.accept_language = self.determine_accept_language(request)
+
         result = super(APIView, self).dispatch(request, *args, **kwargs)
 
         if isinstance(result, HttpResponse):
             return result
-
 
         if request.response_format == 'application/xml':
             base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
