@@ -14,8 +14,9 @@ setup(
     install_requires = [
         'lxml',
         'webob',
-        'python-dateutil',
+        'python-dateutil>=1.5,<2.0',
         'requests',
+        'django-tastypie==0.9.11',
     ],
     entry_points = {
         'console_scripts': [

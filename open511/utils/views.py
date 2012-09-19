@@ -9,9 +9,11 @@ from django.utils.safestring import mark_safe
 from django.views.generic import View
 
 from lxml import etree
+from lxml.builder import E
+from tastypie.paginator import Paginator
 
 from open511.utils.http import accept_from_request, accept_language_from_request
-from open511.utils.serialization import xml_to_json, get_base_open511_element
+from open511.utils.serialization import xml_to_json, get_base_open511_element, ATOM_LINK
 
 
 class APIView(View):
@@ -33,12 +35,12 @@ class APIView(View):
 
     def dispatch(self, request, *args, **kwargs):
 
-        pretty = bool(request.GET.get('indent'))
+        request.pretty_print = bool(request.GET.get('indent'))
         request.response_format = self.determine_response_format(request)
         request.html_response = (request.response_format == 'text/html')
         if request.html_response:
             request.response_format = 'application/xml'
-            pretty = True
+            request.pretty_print = True
 
         request.accept_language = self.determine_accept_language(request)
 
@@ -48,41 +50,57 @@ class APIView(View):
             return result
 
         if request.response_format == 'application/xml':
-            base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
-            if hasattr(result, 'resource'):
-                base.append(result.resource)
-            elif hasattr(result, 'resource_list'):
-                base.extend(result.resource_list)
-            resp = HttpResponse(
-                etree.tostring(base, pretty_print=pretty),
-                content_type='application/xml')
+            resp = self.render_xml(request, result)
         elif request.response_format == 'application/json':
-            resp = HttpResponse(content_type='application/json')
-            if hasattr(result, 'resource'):
-                content = xml_to_json(result.resource)
-            elif hasattr(result, 'resource_list'):
-                content = [xml_to_json(r) for r in result.resource_list]
-            callback = ''
-            if self.allow_jsonp and 'callback' in request.GET:
-                callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])
-                resp.write(callback + '(')
-            json.dump({
-                'status': 'ok',
-                'content': content
-                }, resp, indent=4 if pretty else None)
-            if callback:
-                resp.write(');')
+            resp = self.render_json(request, result)
 
         if request.html_response:
             resp = self.render_api_browser(request, resp.content)
 
         return resp
 
+    def render_xml(self, request, result):
+        base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
+        if hasattr(result, 'resource'):
+            base.append(result.resource)
+        elif hasattr(result, 'resource_list'):
+            base.extend(result.resource_list)
+            if getattr(result, 'pagination', None):
+                base.append(result.pagination_to_xml())
+        return HttpResponse(
+            etree.tostring(base, pretty_print=request.pretty_print),
+            content_type='application/xml')
+
+    def render_json(self, request, result):
+        resp = HttpResponse(content_type='application/json')
+        resp_content = {
+            'status': 'ok'
+        }
+        if hasattr(result, 'resource'):
+            resp_content['content'] = xml_to_json(result.resource)
+        elif hasattr(result, 'resource_list'):
+            resp_content['content'] = [xml_to_json(r) for r in result.resource_list]
+            if getattr(result, 'pagination', None):
+                resp_content['pagination'] = result.pagination
+        callback = ''
+        if self.allow_jsonp and 'callback' in request.GET:
+            callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])
+            resp.write(callback + '(')
+        json.dump(resp_content, resp,
+            indent=4 if request.pretty_print else None)
+        if callback:
+            resp.write(');')
+        return resp
+
     def render_api_browser(self, request, response_content):
         t = loader.get_template('open511/api/base.html')
 
-        # URLify links
         response_content = escape(response_content)
+
+        # Don't show ampersand escapes
+        response_content = response_content.replace('&amp;amp;', '&amp;')
+        
+        # URLify links
         response_content = re.sub(r'href=&quot;(.+?)&quot;',
             r'href=&quot;<a href="\1">\1</a>&quot;',
             response_content)
@@ -93,6 +111,30 @@ class APIView(View):
         return HttpResponse(t.render(c))
 
 
+class ModelListAPIView(APIView):
+
+    # Subclasses should implement:
+    # def get_qs(self, request, any_kwargs_from_url):
+    #    returns a QuerySet
+    #
+    # def object_to_xml(self, request, obj):
+    #    return object.to_xml()
+
+    def get(self, request, **kwargs):
+        qs = self.get_qs(request, **kwargs)
+
+        paginator = Paginator(request.GET, qs, resource_uri=request.path)
+
+        page = paginator.page()
+        page['meta']['totalCount'] = page['meta']['total_count']
+        del page['meta']['total_count']
+
+        return ResourceList(
+            [self.object_to_xml(request, o) for o in page['objects']],
+            page['meta']
+        )
+
+
 class Resource(object):
 
     def __init__(self, resource):
@@ -101,6 +143,22 @@ class Resource(object):
 
 class ResourceList(object):
 
-    def __init__(self, resource_list):
+    def __init__(self, resource_list, pagination=None):
         self.resource_list = resource_list
-        # pagination info...
+        self.pagination = pagination
+
+    def pagination_to_xml(self):
+        el = E.pagination(
+            E.totalCount(unicode(self.pagination['totalCount'])),
+            E.offset(unicode(self.pagination['offset'])),
+            E.limit(unicode(self.pagination['limit'])),
+        )
+        for linkname in ['previous', 'next']:
+            url = self.pagination.get(linkname)
+            if url:
+                link = etree.Element(ATOM_LINK)
+                link.set('rel', linkname)
+                link.set('href', url)
+                el.append(link)
+        return el
+

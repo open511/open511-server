@@ -2,24 +2,23 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
 from open511.models import RoadEvent, Jurisdiction
-from open511.utils.views import APIView, Resource, ResourceList
+from open511.utils.views import APIView, ModelListAPIView, Resource
 
 
-class RoadEventListView(APIView):
+class RoadEventListView(ModelListAPIView):
 
     allow_jsonp = True
 
-    def get(self, request, jurisdiction_slug=None):
+    def get_qs(self, request, jurisdiction_slug=None):
         qs = RoadEvent.objects.all()
         if jurisdiction_slug:
             jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
             qs = qs.filter(jurisdiction=jur)
 
-        resources = [
-            rdev.to_full_xml_element(accept_language=request.accept_language)
-            for rdev in qs
-        ]
-        return ResourceList(resources)
+        return qs
+
+    def object_to_xml(self, request, obj):
+        return obj.to_full_xml_element(accept_language=request.accept_language)
 
 
 class RoadEventView(APIView):
@@ -29,16 +28,15 @@ class RoadEventView(APIView):
         return Resource(rdev.to_full_xml_element(accept_language=request.accept_language))
 
 
-class JurisdictionListView(APIView):
+class JurisdictionListView(ModelListAPIView):
 
     allow_jsonp = True
 
-    def get(self, request):
-        resources = [
-            jur.to_full_xml_element(accept_language=request.accept_language)
-            for jur in Jurisdiction.objects.all()
-        ]
-        return ResourceList(resources)
+    def get_qs(self, request):
+        return Jurisdiction.objects.all()
+
+    def object_to_xml(self, request, obj):
+        return obj.to_full_xml_element(accept_language=request.accept_language)
 
 
 class JurisdictionView(APIView):
