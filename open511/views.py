@@ -10,15 +10,21 @@ class RoadEventListView(APIView):
 
     allow_jsonp = True
 
-    def get(self, request):
+    def get(self, request, jurisdiction_slug=None):
         if request.response_format == 'application/xml':
             # If we're outputting XML, don't prune languages by default
             accept_language = accept_language_from_request(request, default=None)
         else:
             accept_language = accept_language_from_request(request)
+
+        qs = RoadEvent.objects.all()
+        if jurisdiction_slug:
+            jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
+            qs = qs.filter(jurisdiction=jur)
+
         resources = [
             rdev.to_full_xml_element(accept_language=accept_language)
-            for rdev in RoadEvent.objects.all()
+            for rdev in qs
         ]
         return ResourceList(resources)
 
