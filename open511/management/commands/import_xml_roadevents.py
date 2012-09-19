@@ -111,7 +111,7 @@ class Command(BaseCommand):
                 created.append(rdev)
 
             except ValueError as e:
-                logger.error("ValueError importing %s: %s" % (e, rdev.compound_id))
+                logger.error("ValueError importing %s: %s" % (e, rdev.id))
 
         print "%s entries imported." % len(created)
 
