@@ -4,7 +4,6 @@ import datetime
 from django.conf import settings
 from django.contrib.gis.db import models
 from django.core import urlresolvers
-from django.core.serializers.json import simplejson as json
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc
 
@@ -13,7 +12,7 @@ from lxml.builder import E
 
 from open511.fields import XMLField
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
-    geom_to_xml_element, XML_LANG, ATOM_LINK)
+    geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin)
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
 
@@ -43,12 +42,14 @@ class _Open511Model(models.Model):
         abstract = True
 
 
-class Jurisdiction(_Open511Model):
+class Jurisdiction(_Open511Model, XMLModelMixin):
 
     slug = models.SlugField()
-    name = models.CharField(max_length=500)
+    name = models.CharField(max_length=500)  # should be stored in XML for multiling
 
     external_url = models.URLField(blank=True)
+
+    # geom = models.MultiPolygonField(blank=True, null=True)
 
     xml_data = XMLField(default='<jurisdiction />')
 
@@ -58,8 +59,24 @@ class Jurisdiction(_Open511Model):
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_jurisdiction', kwargs={'slug': self.slug})
 
+    def to_full_xml_element(self, accept_language=None):
+        el = deepcopy(self.xml_elem)
 
-class RoadEvent(_Open511Model):
+        # FIXME shouldn't be a DB field
+        el.append(E.name(self.name))
+
+        link = etree.Element(ATOM_LINK)
+        link.set('rel', 'self')
+        link.set('href', self.full_url)
+        el.insert(0, link)
+
+        el.append(E.creationDate(self.created.isoformat()))
+        el.append(E.lastUpdate(self.updated.isoformat()))
+
+        return el
+
+
+class RoadEvent(_Open511Model, XMLModelMixin):
 
     internal_id = models.AutoField(primary_key=True)
     active = models.BooleanField(default=True)
@@ -98,75 +115,6 @@ class RoadEvent(_Open511Model):
             'jurisdiction_slug': self.jurisdiction.slug,
             'id': self.id}
         )
-
-    def _get_elem(self):
-        if not getattr(self, '_xml_elem', None):
-            self._xml_elem = etree.fromstring(self.xml_data)
-        return self._xml_elem
-
-    def _set_elem(self, new_elem):
-        self._xml_elem = new_elem
-
-    xml_elem = property(_get_elem, _set_elem)
-
-    @property
-    # memoize?
-    def default_lang(self):
-        lang = self.xml_elem.get(XML_LANG)
-        if not lang:
-            lang = settings.LANGUAGE_CODE
-        return lang
-
-    def _get_text_elems(self, xpath, root=None):
-        if not root:
-            root = self.xml_elem
-        options = root.xpath(xpath)
-        result = {}
-        for option in options:
-            lang = option.get(XML_LANG)
-            if not lang:
-                lang = self.default_lang
-            result[lang] = option
-        return result
-
-    def get_text_value(self, name, accept=DEFAULT_ACCEPT_LANGUAGE):
-        """Returns the text value with the given name, obeying language preferences.
-
-        accept is a webob.acceptparse.AcceptLanguage object
-
-        Returns None if no suitable value is found."""
-        options = self._get_text_elems(name)
-        best_language = accept.best_match(options.keys())
-        if not best_language:
-            return None
-        return options[best_language].text
-
-    def set_text_value(self, tagname, value, lang=settings.LANGUAGE_CODE):
-        existing = self._get_text_elems(tagname)
-        if lang in existing:
-            elem = existing[lang]
-        else:
-            elem = etree.Element(tagname)
-            if lang != self.default_lang:
-                elem.set(XML_LANG, lang)
-            self.xml_elem.append(elem)
-        if value:
-            elem.text = value
-        else:
-            self.xml_elem.remove(elem)
-
-    def set_tag_value(self, tagname, value):
-        existing = self.xml_elem.xpath(tagname)
-        assert len(existing) < 2
-        if existing:
-            el = existing[0]
-        else:
-            el = etree.Element(tagname)
-            self.xml_elem.append(el)
-        if value in (None, ''):
-            self.xml_elem.remove(el)
-        else:
-            el.text = unicode(value)
 
     def prune_languages(self, parent, accept=DEFAULT_ACCEPT_LANGUAGE):
         """Remove all free-text elements that don't find with the provided
