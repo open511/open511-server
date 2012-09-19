@@ -3,6 +3,9 @@ import re
 from django.conf import settings
 from django.core.serializers.json import simplejson as json
 from django.http import HttpResponse
+from django.template import loader, RequestContext
+from django.template.defaultfilters import escape
+from django.utils.safestring import mark_safe
 from django.views.generic import View
 
 from lxml import etree
@@ -15,7 +18,7 @@ class APIView(View):
 
     allow_jsonp = True
 
-    potential_response_formats = ['application/xml', 'application/json']
+    potential_response_formats = ['application/xml', 'application/json', 'text/html']
 
     def determine_response_format(self, request):
         accept = accept_from_request(request)
@@ -23,14 +26,20 @@ class APIView(View):
 
     def dispatch(self, request, *args, **kwargs):
 
+        pretty = bool(request.GET.get('indent'))
+
+
         request.response_format = self.determine_response_format(request)
+        request.html_response = (request.response_format == 'text/html')
+        if request.html_response:
+            request.response_format = 'application/xml'
+            pretty = True
 
         result = super(APIView, self).dispatch(request, *args, **kwargs)
 
         if isinstance(result, HttpResponse):
             return result
 
-        pretty = bool(request.GET.get('indent'))
 
         if request.response_format == 'application/xml':
             base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
@@ -38,7 +47,7 @@ class APIView(View):
                 base.append(result.resource)
             elif hasattr(result, 'resource_list'):
                 base.extend(result.resource_list)
-            return HttpResponse(
+            resp = HttpResponse(
                 etree.tostring(base, pretty_print=pretty),
                 content_type='application/xml')
         elif request.response_format == 'application/json':
@@ -58,10 +67,24 @@ class APIView(View):
             if callback:
                 resp.write(');')
 
-            if settings.DEBUG and 'html' in request.GET:
-                resp = HttpResponse('<html><body>' + resp.content + '</body></html>')
+        if request.html_response:
+            resp = self.render_api_browser(request, resp.content)
 
-            return resp
+        return resp
+
+    def render_api_browser(self, request, response_content):
+        t = loader.get_template('open511/api/base.html')
+
+        # URLify links
+        response_content = escape(response_content)
+        response_content = re.sub(r'href=&quot;(.+?)&quot;',
+            r'href=&quot;<a href="\1">\1</a>&quot;',
+            response_content)
+
+        c = RequestContext(request, {
+            'response_content': mark_safe(response_content)
+        })
+        return HttpResponse(t.render(c))
 
 
 class Resource(object):

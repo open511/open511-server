@@ -18,7 +18,7 @@ XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
 ATOM_LINK = '{http://www.w3.org/2005/Atom}link'
 
 etree.register_namespace('gml', 'http://www.opengis.net/gml')
-
+parser = etree.XMLParser(remove_blank_text=True)
 
 def geom_to_xml_element(geom):
     """Transform a GEOS or OGR geometry object into an lxml Element
@@ -92,7 +92,7 @@ class XMLModelMixin(object):
 
     def _get_elem(self):
         if not getattr(self, '_xml_elem', None):
-            self._xml_elem = etree.fromstring(self.xml_data)
+            self._xml_elem = etree.fromstring(self.xml_data, parser=parser)
         return self._xml_elem
 
     def _set_elem(self, new_elem):
