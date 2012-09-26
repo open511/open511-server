@@ -63,6 +63,14 @@ class RoadEventListView(ModelListAPIView):
         # FIXME schedule
     }
 
+    def post_filter(self, request, qs):
+        objects = super(RoadEventListView, self).post_filter(request, qs)
+        if 'inEffectOn' in request.GET:
+            # FIXME inefficient - implement on DB
+            query = dateutil.parser.parse(request.GET['inEffectOn']).date()
+            objects = filter(lambda o: o.schedule.includes(query), objects)
+        return objects
+
     def get_qs(self, request, jurisdiction_slug=None):
         qs = RoadEvent.objects.all()
         if jurisdiction_slug:

@@ -130,7 +130,9 @@ class ModelListAPIView(APIView):
             if filter_name in self.filters:
                 qs = self.filters[filter_name](qs, filter_type, value)
 
-        paginator = Paginator(request.GET, qs, resource_uri=request.path)
+        objects = self.post_filter(request, qs)
+
+        paginator = Paginator(request.GET, objects, resource_uri=request.path)
 
         page = paginator.page()
         page['meta']['totalCount'] = page['meta']['total_count']
@@ -140,6 +142,9 @@ class ModelListAPIView(APIView):
             [self.object_to_xml(request, o) for o in page['objects']],
             page['meta']
         )
+
+    def post_filter(self, request, qs):
+        return qs
 
 
 class Resource(object):

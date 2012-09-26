@@ -17,6 +17,11 @@ XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
 ATOM_LINK = '{http://www.w3.org/2005/Atom}link'
 
+try:
+    DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
+except ImportError:
+    DEFAULT_LANGUAGE = 'en'
+
 etree.register_namespace('gml', 'http://www.opengis.net/gml')
 parser = etree.XMLParser(remove_blank_text=True)
 
@@ -105,7 +110,7 @@ class XMLModelMixin(object):
     def default_lang(self):
         lang = self.xml_elem.get(XML_LANG)
         if not lang:
-            lang = settings.LANGUAGE_CODE
+            lang = DEFAULT_LANGUAGE
         return lang
 
     def _get_text_elems(self, xpath, root=None):
@@ -132,7 +137,7 @@ class XMLModelMixin(object):
             return None
         return options[best_language].text
 
-    def set_text_value(self, tagname, value, lang=settings.LANGUAGE_CODE):
+    def set_text_value(self, tagname, value, lang=DEFAULT_LANGUAGE):
         existing = self._get_text_elems(tagname)
         if lang in existing:
             elem = existing[lang]

@@ -82,13 +82,13 @@ def feature_to_open511_element(feature):
         try:
             start_date = blob.xpath(u'div[@id="dates"]/strong[text()="Date de d\xe9but"]')[0].tail
             end_date = blob.xpath(u'div[@id="dates"]/strong[text()="Date de fin"]')[0].tail
-            if start_date and end_date:
-                elem.append(
-                    E.schedule(
-                        E.startDate(unicode(_fr_string_to_date(start_date))),
-                        E.endDate(unicode(_fr_string_to_date(end_date))),
-                    )
-                )
+            start_date = _fr_string_to_date(start_date)
+            end_date = _fr_string_to_date(end_date)
+            if start_date:
+                sked = E.schedule(E.startDate(unicode(start_date)))
+                if end_date:
+                    sked.append(E.endDate(unicode(end_date)))
+                elem.append(sked)
         except IndexError:
             pass
 
@@ -137,6 +137,8 @@ fr_date_re = re.compile(ur'(\d\d?) (%s) (\d{4})' % '|'.join(FR_MONTHS.keys()))
 
 
 def _fr_string_to_date(s):
+    if not s:
+        return None
     match = fr_date_re.search(s)
     if not match:
         return None

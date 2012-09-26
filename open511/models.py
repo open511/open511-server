@@ -16,6 +16,7 @@ from lxml.builder import E
 import requests
 
 from open511.fields import XMLField
+from open511.utils.calendar import Schedule
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
     geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin)
@@ -141,7 +142,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 class RoadEventManager(models.GeoManager):
 
     def update_or_create_from_xml(self, event,
-            default_jurisdiction=None, default_lang=settings.LANGUAGE_CODE, base_url=''):
+            default_jurisdiction=None, default_language=settings.LANGUAGE_CODE, base_url=''):
         # Identify the jurisdiction
         external_jurisdiction = event.xpath('atom:link[@rel="jurisdiction"]',
             namespaces=event.nsmap)
@@ -203,7 +204,7 @@ class RoadEventManager(models.GeoManager):
 
         # Push down the default language if necessary
         if not event.get(XML_LANG):
-            event.set(XML_LANG, default_lang)
+            event.set(XML_LANG, default_language)
 
         rdev.xml_elem = event
         rdev.save()
@@ -298,3 +299,11 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     @property
     def headline(self):
         return self.get_text_value('headline')
+
+    @property
+    def schedule(self):
+        sched = self.xml_elem.find('schedule')
+        if sched is None:
+            return Schedule(E.schedule())
+        return Schedule(sched)
+
