@@ -120,8 +120,15 @@ class ModelListAPIView(APIView):
     # def object_to_xml(self, request, obj):
     #    return object.to_xml()
 
+    filters = {}
+
     def get(self, request, **kwargs):
         qs = self.get_qs(request, **kwargs)
+
+        for filt, value in request.GET.items():
+            filter_name, x, filter_type = filt.partition('__')
+            if filter_name in self.filters:
+                qs = self.filters[filter_name](qs, filter_type, value)
 
         paginator = Paginator(request.GET, qs, resource_uri=request.path)
 

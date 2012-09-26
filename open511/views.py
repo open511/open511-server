@@ -1,19 +1,77 @@
+from functools import partial
+
+from django.contrib.gis.geos import Polygon
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
+import dateutil.parser
+
 from open511.models import RoadEvent, Jurisdiction
 from open511.utils.views import APIView, ModelListAPIView, Resource
+
+
+def filter_status(qs, filter_type, value):
+    if value == 'active':
+        return qs.filter(active=True)
+    elif value == 'archived':
+        return qs.filter(active=False)
+
+
+def filter_xpath(xpath, qs, filter_type, value, xml_field='xml_data', typecast='text'):
+    return qs.extra(
+        where=['(xpath(%s, {0}))::{1}[] @> ARRAY[%s]'.format(xml_field, typecast)],
+        params=[xpath, value]
+    )
+
+
+def filter_datetime(fieldname, qs, filter_type, value, allowable_filters=['gt', 'gte', 'lt', 'lte']):
+    value = dateutil.parser.parse(value)
+    if filter_type in allowable_filters:
+        query = '__'.join((fieldname, filter_type))
+    else:
+        query = fieldname
+    return qs.filter(**{query: value})
+
+
+def filter_bbox(qs, filter_type, value, fieldname='geom'):
+    try:
+        coords = [float(n) for n in value.split(',')]
+    except ValueError:
+        raise # FIXME
+    assert len(coords) == 4
+    return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
 
 
 class RoadEventListView(ModelListAPIView):
 
     allow_jsonp = True
 
+    filters = {
+        'status': filter_status,
+        'eventType': partial(filter_xpath, 'eventType/text()'),
+        'creationDate': partial(filter_datetime, 'created'),
+        'lastUpdate': partial(filter_datetime, 'updated'),
+        'bbox': filter_bbox,
+        # FIXME jurisdiction
+        # FIXME severity
+        'eventSubType': partial(filter_xpath, 'eventSubType/text()'),
+        'travelerMessage': partial(filter_xpath, 'travelerMessage/text()'),
+        'roadName': partial(filter_xpath, 'roads/road/roadName/text()'),
+        'city': partial(filter_xpath, 'roads/road/city/text()'),
+        'impactedSystem': partial(filter_xpath, 'roads/road/impactedSystems/impactedSystem/text()'),
+        # FIXME groupedEvent
+        # FIXME schedule
+    }
+
     def get_qs(self, request, jurisdiction_slug=None):
         qs = RoadEvent.objects.all()
         if jurisdiction_slug:
             jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
             qs = qs.filter(jurisdiction=jur)
+
+        if 'status' not in request.GET:
+            # By default, show only active events
+            qs = qs.filter(active=True)
 
         return qs
 

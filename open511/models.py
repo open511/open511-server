@@ -48,7 +48,7 @@ class _Open511Model(models.Model):
         abstract = True
 
 
-class JurisdictionManager(models.Manager):
+class JurisdictionManager(models.GeoManager):
 
     def get_or_create_from_url(self, url):
         try:
@@ -138,7 +138,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         return el
 
 
-class RoadEventManager(models.Manager):
+class RoadEventManager(models.GeoManager):
 
     def update_or_create_from_xml(self, event,
             default_jurisdiction=None, default_lang=settings.LANGUAGE_CODE, base_url=''):
