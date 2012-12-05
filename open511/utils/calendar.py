@@ -61,32 +61,56 @@ class Schedule(object):
             query_date = query.date()
             query_time = query.time()
 
+        # Is the provided time an exception for this schedule?
+        specific = self.specific_dates.get(query_date)
+        if specific is not None:
+            if not query_time:
+                return True
+            for period in specific:
+                if query_time >= period.start and query_time <= period.end:
+                    return True
+
+        # It's not an exception. Is it within the standard range?
+
         if self.start_date and query_date < self.start_date:
             return False
         if self.end_date and query_date > self.end_date:
             return False
-
-        periods = self.specific_dates.get(query_date)
-        if not periods:
-            periods = self.default_times
-
-        if not periods:
+        if query_date.weekday() not in self.weekdays:
             return False
 
         if not query_time:
             return True
 
-        for period in periods:
-            if query_time > period.start and query_time < period.end:
+        for period in self.default_times:
+            if query_time >= period.start and query_time <= period.end:
                 return True
 
         return False
 
-    def to_periods(self, infinite_limit=None):
+    def active_within_range(self, query_start, query_end):
+        """Is this event ever active between query_start and query_end,
+        which are datetime or date objects?"""
+
+        if isinstance(query_start, datetime.date):
+            query_start = datetime.datetime.combine(query_start, datetime.time(0, 0))
+        if isinstance(query_start, datetime.date):
+            query_start = datetime.datetime.combine(query_start, datetime.time(0, 0))
+
+        for range in self.to_periods(range_start=query_start.date(), range_end=query_end.date()):
+            if ((query_start <= range.start <= query_end)
+                    or (query_start <= range.end <= query_end)):
+                return True
+        return False
+
+    def to_periods(self, infinite_limit=None,
+            range_start=datetime.date.min, range_end=datetime.date.max):
         """A list of datetime tuples representing all the periods for which
         this event is active.
 
         If the event has no end_date, you must provide an infinite_limit argument.
+
+        range_start and range_end are datetime.date objects limiting the periods returned
         """
 
         def _combine(base, periods):
@@ -100,14 +124,16 @@ class Schedule(object):
         base = []
         if self.start_date:
             kw = {
-                'dtstart': self.start_date,
+                'dtstart': max(range_start, self.start_date),
                 'freq': rrule.DAILY,
                 'byweekday': list(self.weekdays),
             }
             if self.end_date:
-                kw['until'] = self.end_date
+                kw['until'] = min(range_end, self.end_date)
             else:
-                if infinite_limit:
+                if range_end < datetime.datetime.max:
+                    kw['until'] = range_end
+                elif infinite_limit:
                     kw['count'] = infinite_limit
                 else:
                     raise ValueError("Neither an end date nor a limit was provided.")
@@ -125,7 +151,8 @@ class Schedule(object):
 
         if exceptions:
             for date, periods in exceptions.values():
-                periods.extend(_combine(date, periods))
+                if date >= range_start and date <= range_end:
+                    periods.extend(_combine(date, periods))
             periods.sort(key=lambda p: p[0])
 
         return periods
