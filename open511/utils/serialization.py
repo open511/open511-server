@@ -96,7 +96,7 @@ def xml_to_json(root):
 class XMLModelMixin(object):
 
     def _get_elem(self):
-        if not getattr(self, '_xml_elem', None):
+        if getattr(self, '_xml_elem', None) is None:
             self._xml_elem = etree.fromstring(self.xml_data, parser=parser)
         return self._xml_elem
 

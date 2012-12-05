@@ -73,13 +73,10 @@ class APIView(View):
 
     def render_json(self, request, result):
         resp = HttpResponse(content_type='application/json')
-        resp_content = {
-            'status': 'ok'
-        }
         if hasattr(result, 'resource'):
-            resp_content['content'] = xml_to_json(result.resource)
+            resp_content = xml_to_json(result.resource)
         elif hasattr(result, 'resource_list'):
-            resp_content['content'] = [xml_to_json(r) for r in result.resource_list]
+            resp_content = {'objects': [xml_to_json(r) for r in result.resource_list]}
             if getattr(result, 'pagination', None):
                 resp_content['pagination'] = result.pagination
         callback = ''
