@@ -268,7 +268,9 @@ class RoadEvent(_Open511Model, XMLModelMixin):
                     and child.tag in ELEMENTS_LOOKUP
                     and ELEMENTS_LOOKUP[child.tag].type == 'TEXT'):
                 options = self._get_text_elems(child.tag, root=parent)
-                best_option = options.get(accept.best_match(options.keys()))
+                best_match = accept.best_match(options.keys(),
+                    default_match=settings.LANGUAGE_CODE)
+                best_option = options.get(best_match)
                 rejects |= set(o for o in options.values() if o != best_option)
         for reject in rejects:
             parent.remove(reject)
@@ -295,6 +297,29 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             self.prune_languages(el, accept_language)
 
         return el
+
+    def _get_or_create_el(self, path, parent=None):
+        if parent is None:
+            parent = self.xml_elem
+        els = parent.xpath(path)
+        if len(els) == 1:
+            return els[0]
+        elif not els:
+            if '/' in path:
+                raise NotImplementedError
+            el = etree.Element(path)
+            parent.append(el)
+            return el
+        elif len(els) > 1:
+            raise NotImplementedError
+
+    def update(self, key, val):
+        update_el = self._get_or_create_el(key)
+
+        if isinstance(val, basestring):
+            update_el.text = val
+        else:
+            raise NotImplementedError
 
     @property
     def headline(self):
