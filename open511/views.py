@@ -1,4 +1,5 @@
 from functools import partial
+import json
 
 from django.contrib.gis.geos import Polygon
 from django.http import HttpResponse
@@ -88,6 +89,19 @@ class RoadEventListView(ModelListAPIView):
 
 
 class RoadEventView(APIView):
+
+    def post(self, request, jurisdiction_slug, id):
+        # FIXME security, abstraction
+        rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
+        updates = json.loads(request.raw_post_data)
+
+        for key, val in updates.items():
+            rdev.update(key, val)
+
+        rdev.full_clean()
+        rdev.save()
+
+        return self.get(request, jurisdiction_slug, id)
 
     def get(self, request, jurisdiction_slug, id):
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
