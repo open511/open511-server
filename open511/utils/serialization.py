@@ -16,6 +16,7 @@ except ImportError:
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
 ATOM_LINK = '{http://www.w3.org/2005/Atom}link'
+GML_NS = 'http://www.opengis.net/gml'
 
 try:
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
@@ -114,7 +115,7 @@ class XMLModelMixin(object):
         return lang
 
     def _get_text_elems(self, xpath, root=None):
-        if not root:
+        if root is None:
             root = self.xml_elem
         options = root.xpath(xpath)
         result = {}

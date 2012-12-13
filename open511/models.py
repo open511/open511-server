@@ -17,6 +17,7 @@ import requests
 
 from open511.fields import XMLField
 from open511.utils.calendar import Schedule
+from open511.utils.geojson import geojson_to_gml
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
     geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin)
@@ -318,6 +319,13 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
         if isinstance(val, basestring):
             update_el.text = val
+        elif key == 'geometry':
+            if 'opengis' in getattr(val, 'tag', ''):
+                gml = val
+            else:
+                gml = geojson_to_gml(val)
+            update_el.clear()
+            update_el.append(gml)
         else:
             raise NotImplementedError
 
