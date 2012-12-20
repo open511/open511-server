@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
 from django.core import urlresolvers
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc
 
@@ -254,25 +254,36 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             'id': self.id}
         )
 
-    def prune_languages(self, parent, accept=DEFAULT_ACCEPT_LANGUAGE):
-        """Remove all free-text elements that don't find with the provided
-        Accept-Language options.
+    def determine_best_language(self, accept=DEFAULT_ACCEPT_LANGUAGE):
+        """Given Accept-Language options, determine what the best language is
+        to return this event in.
 
-        parent - an lxml Element from which items will be pruned
         accept - a webob AcceptLanguage object"""
+        headlines = self._get_text_elems('headline', self.xml_elem)
+        if not headlines:
+            raise ValidationError("Headline is required")
+        best_match = accept.best_match(headlines.keys(), default_match=None)
+        if best_match:
+            return best_match
+        if settings.LANGUAGE_CODE in headlines:
+            # If we don't have a good Accept-Language match,
+            # try and return the default language.
+            return settings.LANGUAGE_CODE
+        # Failing everything else, return what we have.
+        return headlines.keys()[0]
+
+    def prune_languages(self, parent, lang):
+        """Remove all free-text elements that don't match the provided language."""
 
         rejects = set()
         for child in parent:
             if len(child):
-                self.prune_languages(child, accept=accept)
+                self.prune_languages(child, lang)
             elif (child not in rejects
                     and child.tag in ELEMENTS_LOOKUP
                     and ELEMENTS_LOOKUP[child.tag].type == 'TEXT'):
                 options = self._get_text_elems(child.tag, root=parent)
-                best_match = accept.best_match(options.keys(),
-                    default_match=settings.LANGUAGE_CODE)
-                best_option = options.get(best_match)
-                rejects |= set(o for o in options.values() if o != best_option)
+                rejects |= set(o for l,o in options.items() if l != lang)
         for reject in rejects:
             parent.remove(reject)
 
@@ -295,7 +306,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         el.append(E.lastUpdate(self.updated.isoformat()))
 
         if accept_language:
-            self.prune_languages(el, accept_language)
+            best_language = self.determine_best_language(accept_language)
+            self.prune_languages(el, best_language)
 
         return el
 
