@@ -2,7 +2,7 @@
 <html>
 <head>
 	<title>Open511 API</title>
-	<link rel="stylesheet" type="text/css" href="http://dev.open511.ca/map/css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}open511/bootstrap.css">
 	<link href='http://fonts.googleapis.com/css?family=Ubuntu+Condensed' rel='stylesheet' type='text/css'>
 	<script src="http://yandex.st/highlightjs/7.2/highlight.min.js"></script>	
 	<script>hljs.initHighlightingOnLoad();</script>
@@ -104,7 +104,7 @@ pre .clojure .title {
 	</style>
 </head>
 <body>
-	<div id="header"><h1><img id="logo" src="http://dev.open511.ca/map/img/logotype.png"> <small>Road Events API</small></h1></div>
+	<div id="header"><h1><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"> <small>Road Events API</small></h1></div>
 	<pre><code class="xml">{{ response_content }}</code></pre>
 </body>
 </html>
