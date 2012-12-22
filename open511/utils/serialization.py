@@ -68,8 +68,8 @@ def xml_to_json(root):
     for elem in root:
         name = elem.tag
         if name == ATOM_LINK and elem.get('rel'):
-            name = elem.get('rel')
-            if name == 'self':
+            name = elem.get('rel') + '_url'
+            if name == 'self_url':
                 name = 'url'
 
         if name in j:

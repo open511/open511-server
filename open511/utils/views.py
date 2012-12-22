@@ -10,9 +10,9 @@ from django.views.generic import View
 
 from lxml import etree
 from lxml.builder import E
-from tastypie.paginator import Paginator
 
 from open511.utils.http import accept_from_request, accept_language_from_request
+from open511.utils.pagination import APIPaginator
 from open511.utils.serialization import xml_to_json, get_base_open511_element, ATOM_LINK
 
 
@@ -39,7 +39,10 @@ class APIView(View):
         request.response_format = self.determine_response_format(request)
         request.html_response = (request.response_format == 'text/html')
         if request.html_response:
-            request.response_format = 'application/xml'
+            if request.COOKIES.get('open511_browser_format') == 'json':
+                request.response_format = 'application/json'
+            else:
+                request.response_format = 'application/xml'
             request.pretty_print = True
 
         request.accept_language = self.determine_accept_language(request)
@@ -98,11 +101,18 @@ class APIView(View):
         response_content = response_content.replace('&amp;amp;', '&amp;')
         
         # URLify links
-        response_content = re.sub(r'href=&quot;(.+?)&quot;',
-            r'href=&quot;<a href="\1">\1</a>&quot;',
-            response_content)
+        format = request.response_format.split('/')[-1]
+        if format == 'xml':
+            response_content = re.sub(r'href=&quot;(.+?)&quot;',
+                r'href=&quot;<a href="\1">\1</a>&quot;',
+                response_content)
+        elif format == 'json':
+            response_content = re.sub(r'(&quot;|_)url&quot;: &quot;(\S+)(&quot;,?\s*\n)',
+                r'\1url&quot;: &quot;<a href="\2">\2</a>\3',
+                response_content)
 
         c = RequestContext(request, {
+            'response_format': format,
             'response_content': mark_safe(response_content)
         })
         return HttpResponse(t.render(c))
@@ -129,15 +139,13 @@ class ModelListAPIView(APIView):
 
         objects = self.post_filter(request, qs)
 
-        paginator = Paginator(request.GET, objects, resource_uri=request.path)
+        paginator = APIPaginator(request, objects)
 
-        page = paginator.page()
-        page['meta']['totalCount'] = page['meta']['total_count']
-        del page['meta']['total_count']
+        objects, pagination = paginator.page()
 
         return ResourceList(
-            [self.object_to_xml(request, o) for o in page['objects']],
-            page['meta']
+            [self.object_to_xml(request, o) for o in objects],
+            pagination
         )
 
     def post_filter(self, request, qs):
@@ -158,15 +166,15 @@ class ResourceList(object):
 
     def pagination_to_xml(self):
         el = E.pagination(
-            E.totalCount(unicode(self.pagination['totalCount'])),
+            #E.totalCount(unicode(self.pagination['totalCount'])),
             E.offset(unicode(self.pagination['offset'])),
             E.limit(unicode(self.pagination['limit'])),
         )
-        for linkname in ['previous', 'next']:
+        for linkname in ['previous_url', 'next_url']:
             url = self.pagination.get(linkname)
             if url:
                 link = etree.Element(ATOM_LINK)
-                link.set('rel', linkname)
+                link.set('rel', linkname.partition('_')[0])
                 link.set('href', url)
                 el.append(link)
         return el

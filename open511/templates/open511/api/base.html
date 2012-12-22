@@ -4,7 +4,8 @@
 	<title>Open511 API</title>
 	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}open511/bootstrap.css">
 	<link href='http://fonts.googleapis.com/css?family=Ubuntu+Condensed' rel='stylesheet' type='text/css'>
-	<script src="http://yandex.st/highlightjs/7.2/highlight.min.js"></script>	
+	<script src="http://yandex.st/highlightjs/7.2/highlight.min.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
 	<script>hljs.initHighlightingOnLoad();</script>
 	<style type="text/css">
 		#header {
@@ -16,9 +17,19 @@
 		#header #logo {
 			padding: 6px 20px 0 8px;
 		}
+		#code_body {
+			margin-left: auto;
+			margin-right: auto;
+			width: 80%;
+		}
+		#code_body ul.nav-tabs {
+			margin-top: 1em;
+			margin-bottom: 0;
+			padding-bottom: 0;
+			border: none;
+		}
 		code {
 			display: block;
-			max-width: 80%;
 			margin-left: auto;
 			margin-right: auto;
 			overflow: auto;
@@ -105,6 +116,21 @@ pre .clojure .title {
 </head>
 <body>
 	<div id="header"><h1><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"> <small>Road Events API</small></h1></div>
-	<pre><code class="xml">{{ response_content }}</code></pre>
+	<div id="code_body">
+	<ul class="nav nav-tabs">
+		<li{% if response_format == "xml" %} class="active"{% endif %}><a href="" data-tab="xml">XML</a></li>
+		<li{% if response_format == "json" %} class="active"{% endif %}><a href="" data-tab="json">JSON</a></li></ul>
+	<pre><code class="{{ response_format }}">{{ response_content }}</code></pre>
+</div>
+<script type="text/javascript">
+$(function() {
+	$('ul.nav-tabs a').click(function(e) {
+		e.preventDefault();
+		var format = $(this).attr('data-tab');
+		document.cookie = 'open511_browser_format=' + format + ';path=/';
+		window.location.reload(true);
+	});
+});
+</script>
 </body>
 </html>
