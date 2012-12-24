@@ -1,12 +1,14 @@
 from collections import namedtuple
 
 from lxml import etree
+from lxml.builder import E
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.utils.translation import ugettext_lazy as _
 
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
+from open511.utils.geojson import gml_to_geojson
 
 try:
     import simplejson as json
@@ -23,7 +25,7 @@ try:
 except ImportError:
     DEFAULT_LANGUAGE = 'en'
 
-etree.register_namespace('gml', 'http://www.opengis.net/gml')
+etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)
 
 def geom_to_xml_element(geom):
@@ -61,9 +63,23 @@ def get_base_open511_element(lang=None, base=None):
         elem.set(XML_BASE, base)
     return elem
 
+def make_link(rel, href):
+    l = etree.Element(ATOM_LINK)
+    l.set('rel', rel)
+    l.set('href', href)
+    return l
 
 def xml_to_json(root):
     j = {}
+
+    if isinstance(root, (list, tuple)):
+        root = E.dummy(*root)
+
+    if len(root) == 0:
+        return root.text
+
+    if len(root) == 1 and root[0].tag.startswith('{' + GML_NS):
+        return gml_to_geojson(root[0])
 
     for elem in root:
         name = elem.tag
@@ -74,18 +90,12 @@ def xml_to_json(root):
 
         if name in j:
             continue  # duplicate
-
-        if name.lower() == 'geometry':
-            # We can probably implement this ourselves & make it much more efficient
-            # (& get rid of the postgis dependency)
-            from open511.utils.postgis import gml_to_geojson
-            j[name] = json.loads(gml_to_geojson(etree.tostring(elem[0])))
         elif elem.tag == ATOM_LINK and not elem.text:
             j[name] = elem.get('href')
         elif len(elem):
-            # Is it a simple list of values?
-            if all((child.tag == name + 's' and len(child) == 0 for child in elem)):
-                j[name] = [child.text for child in elem]
+            # Is it a list of identical values?
+            if all((name == child.tag + 's' for child in elem)):
+                j[name] = [xml_to_json(child) for child in elem]
             else:
                 j[name] = xml_to_json(elem)
         else:

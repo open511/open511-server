@@ -65,7 +65,10 @@ class APIView(View):
     def render_xml(self, request, result):
         base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
         if hasattr(result, 'resource'):
-            base.append(result.resource)
+            if isinstance(result.resource, (list, tuple)):
+                base.extend(result.resource)
+            else:
+                base.append(result.resource)
         elif hasattr(result, 'resource_list'):
             base.extend(result.resource_list)
             if getattr(result, 'pagination', None):

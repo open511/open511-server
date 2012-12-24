@@ -2,7 +2,6 @@ from functools import partial
 import json
 
 from django.contrib.gis.geos import Polygon
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
@@ -107,29 +106,5 @@ class RoadEventView(APIView):
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
         return Resource(rdev.to_full_xml_element(accept_language=request.accept_language))
 
-
-class JurisdictionListView(ModelListAPIView):
-
-    allow_jsonp = True
-
-    def get_qs(self, request):
-        return Jurisdiction.objects.all()
-
-    def object_to_xml(self, request, obj):
-        return obj.to_full_xml_element(accept_language=request.accept_language)
-
-
-class JurisdictionView(APIView):
-
-    def get(self, request, slug):
-        jur = get_object_or_404(Jurisdiction, slug=slug)
-        return Resource(jur.to_full_xml_element(accept_language=request.accept_language))
-
-
-def unimplemented_view(request, *args, **kwargs):
-    return HttpResponse('Not yet implemented')
-
 list_roadevents = RoadEventListView.as_view()
 roadevent = RoadEventView.as_view()
-list_jurisdictions = JurisdictionListView.as_view()
-jurisdiction = JurisdictionView.as_view()

@@ -139,6 +139,10 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
         return el
 
+    @property
+    def name(self):
+        return self.get_text_value('name')
+
 
 class RoadEventManager(models.GeoManager):
 

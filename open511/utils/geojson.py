@@ -1,6 +1,8 @@
-from lxml.etree import Element
+import json
 
-from open511.utils.serialization import GML_NS
+from lxml import etree
+
+GML_NS = 'http://www.opengis.net/gml'
 
 def geojson_to_gml(gj):
     """Given a dict deserialized from a GeoJSON object, returns an lxml Element
@@ -14,9 +16,15 @@ def geojson_to_gml(gj):
         )
     else:
         raise NotImplementedError
-    tag = Element('{%s}%s' % (GML_NS, gj['type']))
-    coord_tag = Element('{%s}coordinates' % GML_NS)
+    tag = etree.Element('{%s}%s' % (GML_NS, gj['type']))
+    coord_tag = etree.Element('{%s}coordinates' % GML_NS)
     coord_tag.text = coords
     tag.set('srsName', 'EPSG:4326')
     tag.append(coord_tag)
     return tag
+
+def gml_to_geojson(el):
+    """Given an lxml Element of a GML geometry, returns a dict in GeoJSON format."""
+    # FIXME implement in python, at least for Point / LineString
+    from open511.utils.postgis import pg_gml_to_geojson
+    return json.loads(pg_gml_to_geojson(etree.tostring(el)))

@@ -26,5 +26,5 @@ def gml_to_ewkt(gml_string, force_2D=True):
     return _convert_gml(gml_string, 'ST_AsEWKT', force_2D=force_2D)
 
 
-def gml_to_geojson(gml_string):
+def pg_gml_to_geojson(gml_string):
     return _convert_gml(gml_string, 'ST_AsGeoJSON')
