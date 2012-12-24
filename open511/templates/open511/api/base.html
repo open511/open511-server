@@ -2,11 +2,8 @@
 <html>
 <head>
 	<title>Open511 API</title>
-	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}open511/bootstrap.css">
-	<link href='http://fonts.googleapis.com/css?family=Ubuntu+Condensed' rel='stylesheet' type='text/css'>
-	<script src="http://yandex.st/highlightjs/7.2/highlight.min.js"></script>
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-	<script>hljs.initHighlightingOnLoad();</script>
+	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}open511/vendor/bootstrap.css">
+	{# <link href='http://fonts.googleapis.com/css?family=Ubuntu+Condensed' rel='stylesheet' type='text/css'> #}
 	<style type="text/css">
 		#header {
 			height: 50px;
@@ -122,6 +119,9 @@ pre .clojure .title {
 		<li{% if response_format == "json" %} class="active"{% endif %}><a href="" data-tab="json">JSON</a></li></ul>
 	<pre><code class="{{ response_format }}">{{ response_content }}</code></pre>
 </div>
+<script src="{{ STATIC_URL }}open511/vendor/highlight.min.js"></script>
+<script src="{{ STATIC_URL }}open511/vendor/jquery.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
 <script type="text/javascript">
 $(function() {
 	$('ul.nav-tabs a').click(function(e) {
