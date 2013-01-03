@@ -20,7 +20,7 @@ from open511.utils.calendar import Schedule
 from open511.utils.geojson import geojson_to_gml
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
-    geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin,
+    geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin, NSMAP,
     json_to_xml)
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
@@ -68,15 +68,16 @@ class JurisdictionManager(models.GeoManager):
         req = requests.get(url)
         root = etree.fromstring(req.content)
         jur = root.xpath('jurisdiction')[0]
-        self_url = jur.xpath('atom:link[@rel="self"]/@href', namespaces=jur.nsmap)[0]
+        self_url = jur.xpath('atom:link[@rel="self"]/@href', namespaces=NSMAP)[0]
         if self_url != url:
             return self.get_or_create_from_url(self_url)
 
         return self.update_or_create_from_xml(jur)
 
     def update_or_create_from_xml(self, xml_jurisdiction):
+        xml_jurisdiction = deepcopy(xml_jurisdiction)
         self_link = xml_jurisdiction.xpath('atom:link[@rel="self"]',
-            namespaces=xml_jurisdiction.nsmap)[0]
+            namespaces=NSMAP)[0]
         try:
             jur = self.get(external_url=self_link.get('href'))
         except ObjectDoesNotExist:
@@ -96,7 +97,7 @@ class JurisdictionManager(models.GeoManager):
                 pass
 
         for path in ['status', 'creationDate', 'lastUpdate', 'atom:link[@rel="self"]']:
-            for elem in xml_jurisdiction.xpath(path, namespaces=xml_jurisdiction.nsmap):
+            for elem in xml_jurisdiction.xpath(path, namespaces=NSMAP):
                 xml_jurisdiction.remove(elem)
         jur.xml_elem = xml_jurisdiction
         jur.save()
@@ -150,8 +151,9 @@ class RoadEventManager(models.GeoManager):
     def update_or_create_from_xml(self, event,
             default_jurisdiction=None, default_language=settings.LANGUAGE_CODE, base_url=''):
         # Identify the jurisdiction
+        event = deepcopy(event)
         external_jurisdiction = event.xpath('atom:link[@rel="jurisdiction"]',
-            namespaces=event.nsmap)
+            namespaces=NSMAP)
         if external_jurisdiction:
             jurisdiction = Jurisdiction.objects.get_or_create_from_url(external_jurisdiction[0].get('href'))
             event.remove(external_jurisdiction[0])
@@ -161,7 +163,7 @@ class RoadEventManager(models.GeoManager):
             raise Exception("No jurisdiction provided")
 
         self_link = event.xpath('atom:link[@rel="self"]',
-            namespaces=event.nsmap)
+            namespaces=NSMAP)
         if self_link:
             external_url = urljoin(base_url, self_link[0].get('href'))
             id = filter(None, external_url.split('/'))[-1]

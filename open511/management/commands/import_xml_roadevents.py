@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 created.append(rdev)
 
             except (ValueError, ValidationError) as e:
-                logger.error("%s importing %s: %s" % (e.__class__.__name__, rdev.id, e))
+                logger.error("%s importing %s: %s" % (e.__class__.__name__, event.get('id'), e))
 
         print "%s entries imported." % len(created)
 

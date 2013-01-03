@@ -20,6 +20,11 @@ XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
 ATOM_LINK = '{http://www.w3.org/2005/Atom}link'
 GML_NS = 'http://www.opengis.net/gml'
 
+NSMAP = {
+    'gml': GML_NS,
+    'atom': 'http://www.w3.org/2005/Atom'
+}
+
 try:
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
 except ImportError:
