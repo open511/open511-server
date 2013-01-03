@@ -217,6 +217,19 @@ class RoadEventManager(models.GeoManager):
         return rdev
 
 
+def validate_roadevent_xml(root):
+    if not getattr(root, 'tag', '') == 'roadEvent':
+        try:
+            root = etree.fromstring(root)
+        except Exception as e:
+            raise ValidationError(e)
+
+    # For now, just makes sure a bunch of provided xpaths are present
+    for xp in ('headline', 'eventType', 'severity', 'schedule/startDate'):
+        if not root.xpath(xp):
+            raise ValidationError("%s is required" % xp)
+
+
 class RoadEvent(_Open511Model, XMLModelMixin):
 
     internal_id = models.AutoField(primary_key=True)
@@ -228,7 +241,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'))
-    xml_data = XMLField(default='<roadEvent xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />')
+    xml_data = XMLField(default='<roadEvent xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
+        validators=[validate_roadevent_xml])
 
     objects = RoadEventManager()
 
