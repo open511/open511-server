@@ -227,7 +227,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'))
-    xml_data = XMLField(default='<roadEvent />')
+    xml_data = XMLField(default='<roadEvent xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />')
 
     objects = RoadEventManager()
 
@@ -248,6 +248,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             mgr.filter(internal_id=self.internal_id).update(
                 id=self.internal_id
             )
+            self.id = self.internal_id
 
     def __unicode__(self):
         return u"%s (%s)" % (self.id, self.jurisdiction)
@@ -333,6 +334,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def update(self, key, val):
         update_el = self._get_or_create_el(key)
 
+        if key in ('status', 'lastUpdated', 'creationDate'):
+            raise NotImplementedError
         if isinstance(val, basestring):
             update_el.text = val
         elif key == 'geometry':
@@ -340,9 +343,12 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             if 'opengis' in getattr(val, 'tag', ''):
                 gml = val
             else:
+                # FIXME we should be converting from geojson to wkt, not gml
                 gml = geojson_to_gml(val)
             update_el.clear()
             update_el.append(gml)
+            ewkt = gml_to_ewkt(etree.tostring(gml), force_2D=True)
+            self.geom = geos_geom_from_string(ewkt)
         else:
             raise NotImplementedError
 

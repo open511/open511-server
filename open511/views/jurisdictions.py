@@ -6,6 +6,7 @@ from open511.utils.views import ModelListAPIView, APIView, Resource
 class JurisdictionListView(ModelListAPIView):
 
     allow_jsonp = True
+    model = Jurisdiction
 
     def get_qs(self, request):
         return Jurisdiction.objects.all()
@@ -15,6 +16,8 @@ class JurisdictionListView(ModelListAPIView):
 
 
 class JurisdictionView(APIView):
+
+    model = Jurisdiction
 
     def get(self, request, slug):
         jur = get_object_or_404(Jurisdiction, slug=slug)

@@ -14,22 +14,31 @@
 		#header #logo {
 			padding: 6px 20px 0 8px;
 		}
-		#code_body {
+		p {
+			font-size: 110%;
+		}
+/*		#code_body {
 			margin-left: auto;
 			margin-right: auto;
-			width: 80%;
-		}
+			width: 96%;
+		}*/
 		#code_body ul.nav-tabs {
 			margin-top: 1em;
 			margin-bottom: 0;
 			padding-bottom: 0;
 			border: none;
 		}
-		code {
+		#code_body code {
 			display: block;
 			margin-left: auto;
 			margin-right: auto;
 			overflow: auto;
+		}
+		#content {
+			max-width: 960px;
+			margin-left: auto;
+			margin-right: auto;
+			margin-top: 20px;
 		}
 	</style>
 
@@ -112,13 +121,19 @@ pre .clojure .title {
 	</style>
 </head>
 <body>
-	<div id="header"><h1><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"> <small>Road Events API</small></h1></div>
-	<div id="code_body">
-	<ul class="nav nav-tabs">
-		<li{% if response_format == "xml" %} class="active"{% endif %}><a href="" data-tab="xml">XML</a></li>
-		<li{% if response_format == "json" %} class="active"{% endif %}><a href="" data-tab="json">JSON</a></li></ul>
-	<pre><code class="{{ response_format }}">{{ response_content }}</code></pre>
-</div>
+	<div id="header"><h1><a href="/"><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"></a> <small>API Browser</small></h1></div>
+	<div id="content">
+		{% if resource_name %}
+			<p>This is a 
+			{% if is_list %}list of <strong>{{ resource_name_plural }}</strong>{% else %}<strong>{{ resource_name }}</strong> resource{% endif %}. <a href="http://opennorth.github.com/Open511API/">Read the API documentation.</a> </p> 
+		{% endif %}
+		<div id="code_body">
+		<ul class="nav nav-tabs">
+			<li{% if response_format == "xml" %} class="active"{% endif %}><a href="" data-tab="xml">XML</a></li>
+			<li{% if response_format == "json" %} class="active"{% endif %}><a href="" data-tab="json">JSON</a></li></ul>
+		<pre><code class="{{ response_format }}">{{ response_content }}</code></pre>
+		</div>
+	</div>
 <script src="{{ STATIC_URL }}open511/vendor/highlight.min.js"></script>
 <script src="{{ STATIC_URL }}open511/vendor/jquery.min.js"></script>
 <script>hljs.initHighlightingOnLoad();</script>

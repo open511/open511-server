@@ -1,4 +1,5 @@
 from django.conf.urls import *
+from django.conf import settings
 
 urlpatterns = patterns('open511.views',
     url(r'^events/$', 'events.list_roadevents', name='open511_roadevent_list'),
@@ -10,3 +11,8 @@ urlpatterns = patterns('open511.views',
     url(r'^jurisdictions/(?P<slug>[a-z0-9-]+)/$', 'jurisdictions.jurisdiction', name='open511_jurisdiction'),
     url(r'^$', 'discovery.discovery', name='open511_discovery'),
 )
+
+if settings.DEBUG:
+    urlpatterns += patterns('open511.views.debug',
+        url(r'^debug/xml_to_json/?$', 'x2j'),
+    )

@@ -4,6 +4,7 @@ import urlparse
 from django.conf import settings
 from django.core.serializers.json import simplejson as json
 from django.http import HttpResponse
+from django.shortcuts import render
 from django.template import loader, RequestContext
 from django.template.defaultfilters import escape
 from django.utils.safestring import mark_safe
@@ -28,6 +29,7 @@ class APIView(View):
 
     potential_formats = ['xml', 'json']
     potential_versions = ['v0']
+    unauthenticated_methods = ('GET', 'HEAD', 'OPTIONS')
 
     include_up_link = True
 
@@ -50,7 +52,8 @@ class APIView(View):
         accept = accept_from_request(request)
         if not getattr(self, '_available_types', None):
             self._available_types = self.list_available_media_types()
-        best_type = accept.best_match(self._available_types.keys())
+        best_type = accept.best_match(self._available_types.keys(),
+            default_match='application/xml')
         return self._available_types[best_type]
 
     def determine_accept_language(self, request):
@@ -61,6 +64,11 @@ class APIView(View):
             return accept_language_from_request(request)
 
     def dispatch(self, request, *args, **kwargs):
+
+        if request.method not in self.unauthenticated_methods and not request.user.is_authenticated():
+            resp = HttpResponse("You need to be logged in to do that.", content_type='text/plain')
+            resp.status_code = 401
+            return resp
 
         request.pretty_print = bool(request.GET.get('indent'))
         request.response_version, request.response_format = self.determine_response_format(request)
@@ -133,8 +141,6 @@ class APIView(View):
         return resp
 
     def render_api_browser(self, request, response_content):
-        t = loader.get_template('open511/api/base.html')
-
         response_content = escape(response_content)
 
         # Don't show ampersand escapes
@@ -150,11 +156,21 @@ class APIView(View):
                 r'\1url&quot;: &quot;<a href="\2">\2</a>\3',
                 response_content)
 
-        c = RequestContext(request, {
+        ctx = {
             'response_format': request.response_format,
             'response_content': mark_safe(response_content)
-        })
-        return HttpResponse(t.render(c))
+        }
+
+        ctx['is_list'] = isinstance(self, ModelListAPIView)
+        model = getattr(self, 'model', None)
+        if model:
+            ctx['resource_name'] = model._meta.verbose_name
+            ctx['resource_name_plural'] = model._meta.verbose_name_plural
+        else:
+            ctx['resource_name'] = getattr(self, 'resource_name', '')
+            ctx['resource_name_plural'] = getattr(self, 'resource_name_plural', '')
+
+        return render(request, "open511/api/base.html", ctx)
 
     def get_response_metadata(self, request):
         m = {

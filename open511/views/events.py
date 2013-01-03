@@ -2,6 +2,8 @@ from functools import partial
 import json
 
 from django.contrib.gis.geos import Polygon
+from django.db.models import Q
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
@@ -46,6 +48,8 @@ class RoadEventListView(ModelListAPIView):
 
     allow_jsonp = True
 
+    model = RoadEvent
+
     filters = {
         'status': filter_status,
         'eventType': partial(filter_xpath, 'eventType/text()'),
@@ -86,8 +90,27 @@ class RoadEventListView(ModelListAPIView):
     def object_to_xml(self, request, obj):
         return obj.to_full_xml_element(accept_language=request.accept_language)
 
+    def post(self, request):
+        # FIXME security, abstraction
+        content = json.loads(request.raw_post_data)
+
+        jurisdiction_url = content.pop('jurisdiction_url')
+        jurisdiction = Jurisdiction.objects.get(
+            Q(external_url=jurisdiction_url) |
+            Q(slug=filter(None, jurisdiction_url.split('/'))[-1])
+        )
+
+        rdev = RoadEvent(jurisdiction=jurisdiction)
+        for key, val in content.items():
+            rdev.update(key, val)
+        rdev.save()
+
+        return HttpResponseRedirect(rdev.get_absolute_url())
+
 
 class RoadEventView(APIView):
+
+    model = RoadEvent
 
     def post(self, request, jurisdiction_slug, id):
         # FIXME security, abstraction
@@ -101,6 +124,8 @@ class RoadEventView(APIView):
         rdev.save()
 
         return self.get(request, jurisdiction_slug, id)
+
+    patch = post
 
     def get(self, request, jurisdiction_slug, id):
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)

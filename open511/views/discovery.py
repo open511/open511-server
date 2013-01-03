@@ -18,6 +18,7 @@ SERVICES = [
 class DiscoveryView(APIView):
 
     include_up_link = False
+    resource_name = 'discovery'
 
     def get(self, request):
         jurisdictions = E.jurisdictions(*[

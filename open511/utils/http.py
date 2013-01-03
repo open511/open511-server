@@ -26,6 +26,7 @@ def accept_from_request(request, default=DEFAULT_ACCEPT):
             return MIMEAccept('application/xml')
         elif request.GET['format'] == 'json':
             return MIMEAccept('application/json')
+        return MIMEAccept(request.GET['format'])
 
     if 'HTTP_ACCEPT' in request.META:
         return MIMEAccept(request.META['HTTP_ACCEPT'])
