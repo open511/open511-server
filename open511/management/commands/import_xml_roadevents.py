@@ -4,6 +4,7 @@ import re
 import sys
 import urllib2
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
 
 from lxml import etree
@@ -53,8 +54,8 @@ class Command(BaseCommand):
 
                 created.append(rdev)
 
-            except ValueError as e:
-                logger.error("ValueError importing %s: %s" % (e, rdev.id))
+            except (ValueError, ValidationError) as e:
+                logger.error("%s importing %s: %s" % (e.__class__.__name__, rdev.id, e))
 
         print "%s entries imported." % len(created)
 

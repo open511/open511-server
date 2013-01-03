@@ -73,6 +73,7 @@ def get_roadevent_from_summary(summary):
 
     set_val('status', 'active')
     set_val('eventType', 'Roadwork')
+    set_val('severity', '2' if summary['id'].startswith('maj') else '1')
 
     root = lxml.html.fragment_fromstring(resp.read().decode('utf8'))
     set_val('headline', _get_text_from_elems(root.cssselect('#tdIdentification')))

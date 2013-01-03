@@ -43,6 +43,7 @@ def feature_to_open511_element(feature):
 
     set_val('status', 'active')
     set_val('eventType', 'Roadwork')
+    set_val('severity', '1')
 
     set_val('headline', feature.get('Name').decode('utf8'))
 
