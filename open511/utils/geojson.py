@@ -23,8 +23,23 @@ def geojson_to_gml(gj):
     tag.append(coord_tag)
     return tag
 
+
 def gml_to_geojson(el):
     """Given an lxml Element of a GML geometry, returns a dict in GeoJSON format."""
-    # FIXME implement in python, at least for Point / LineString
-    from open511.utils.postgis import pg_gml_to_geojson
-    return json.loads(pg_gml_to_geojson(etree.tostring(el)))
+    coords = el.findtext('{%s}coordinates' % GML_NS)
+    if el.tag.endswith('Point'):
+        return {
+            'type': 'Point',
+            'coordinates': [float(c) for c in coords.split(',')]
+        }
+    elif el.tag.endswith('LineString'):
+        return {
+            'type': 'LineString',
+            'coordinates': [
+            [float(x) for x in pair.split(',')]
+            for pair in coords.split(' ')
+            ]
+        }
+    else:
+        from open511.utils.postgis import pg_gml_to_geojson
+        return json.loads(pg_gml_to_geojson(etree.tostring(el)))
