@@ -103,6 +103,19 @@ def xml_to_json(root):
 
     return j
 
+def json_to_xml(json_obj, root):
+    if isinstance(root, basestring):
+        root = etree.Element(root_name)
+    for key, val in json_obj.items():
+        if isinstance(val, dict):
+            root.append(json_to_xml(val, key))
+        elif val is not None:
+            el = etree.Element(key)
+            el.text = val
+            root.append(el)
+    return root
+
+
 
 class XMLModelMixin(object):
 

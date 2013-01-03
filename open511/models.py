@@ -20,7 +20,8 @@ from open511.utils.calendar import Schedule
 from open511.utils.geojson import geojson_to_gml
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
-    geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin)
+    geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin,
+    json_to_xml)
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
 
@@ -332,11 +333,18 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             raise NotImplementedError
 
     def update(self, key, val):
+
+        if key in ('lastUpdated', 'creationDate'):
+            raise NotImplementedError
+        elif key == 'status':
+            self.active = (val == 'active')
+            return
+
         update_el = self._get_or_create_el(key)
 
-        if key in ('status', 'lastUpdated', 'creationDate'):
-            raise NotImplementedError
-        if isinstance(val, basestring):
+        if val is None:
+            update_el.getparent().remove(update_el)
+        elif isinstance(val, basestring):
             update_el.text = val
         elif key == 'geometry':
             # FIXME update actual geometry column
@@ -349,6 +357,9 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             update_el.append(gml)
             ewkt = gml_to_ewkt(etree.tostring(gml), force_2D=True)
             self.geom = geos_geom_from_string(ewkt)
+        elif isinstance(val, dict):
+            update_el.clear()
+            json_to_xml(val, update_el)
         else:
             raise NotImplementedError
 

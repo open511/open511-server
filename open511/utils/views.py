@@ -30,6 +30,7 @@ class APIView(View):
     potential_formats = ['xml', 'json']
     potential_versions = ['v0']
     unauthenticated_methods = ('GET', 'HEAD', 'OPTIONS')
+    http_method_names = View.http_method_names + ['patch']
 
     include_up_link = True
 

@@ -112,7 +112,7 @@ class RoadEventView(APIView):
 
     model = RoadEvent
 
-    def post(self, request, jurisdiction_slug, id):
+    def patch(self, request, jurisdiction_slug, id):
         # FIXME security, abstraction
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
         updates = json.loads(request.raw_post_data)
@@ -124,8 +124,6 @@ class RoadEventView(APIView):
         rdev.save()
 
         return self.get(request, jurisdiction_slug, id)
-
-    patch = post
 
     def get(self, request, jurisdiction_slug, id):
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
