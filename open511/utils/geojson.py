@@ -4,6 +4,21 @@ from lxml import etree
 
 GML_NS = 'http://www.opengis.net/gml'
 
+def geojson_to_ewkt(gj):
+    """Given a dict deserialized from a GeoJSON object, returns
+    the WKT representation."""
+    if gj['type'] == 'Point':
+        coords = '%s %s' % (gj['coordinates'][0], gj['coordinates'][1])
+    elif gj['type'] == 'LineString':
+        coords = ', '.join(
+            '%s %s' % (pair[0], pair[1])
+            for pair in gj['coordinates']
+        )
+    else:
+        raise NotImplementedError
+    return 'SRID=4326;%s(%s)' % (gj['type'].upper(), coords)
+
+
 def geojson_to_gml(gj):
     """Given a dict deserialized from a GeoJSON object, returns an lxml Element
     of the corresponding GML geometry."""

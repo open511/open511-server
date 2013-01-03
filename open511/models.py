@@ -17,7 +17,7 @@ import requests
 
 from open511.fields import XMLField
 from open511.utils.calendar import Schedule
-from open511.utils.geojson import geojson_to_gml
+from open511.utils.geojson import geojson_to_ewkt
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
     geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin, NSMAP,
@@ -365,14 +365,12 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         elif key == 'geometry':
             # FIXME update actual geometry column
             if 'opengis' in getattr(val, 'tag', ''):
-                gml = val
+                wkt = gml_to_ewkt(etree.tostring(val))
             else:
-                # FIXME we should be converting from geojson to wkt, not gml
-                gml = geojson_to_gml(val)
+                wkt = geojson_to_ewkt(val)
+            self.geom = geos_geom_from_string(wkt)
             update_el.clear()
-            update_el.append(gml)
-            ewkt = gml_to_ewkt(etree.tostring(gml), force_2D=True)
-            self.geom = geos_geom_from_string(ewkt)
+            update_el.append(geom_to_xml_element(self.geom))
         elif isinstance(val, dict):
             update_el.clear()
             json_to_xml(val, update_el)
