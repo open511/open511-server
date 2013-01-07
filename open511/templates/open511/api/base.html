@@ -1,3 +1,4 @@
+{% load open511 %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,6 +40,31 @@
 			margin-left: auto;
 			margin-right: auto;
 			margin-top: 20px;
+		}
+
+		#filters .add-row {
+			color: #666666;
+			font-size: 23px;
+			padding-left: 5px;
+		}
+		#filters .add-row:hover {
+			text-decoration: none;
+			color: #08c;
+		}
+		#filters th {
+			width: 35%;
+		}
+		#filters td.value {
+			/*width: 50%;*/
+		}
+		#filters td.closecol {
+			width: 20px;
+		}
+		#filters td input[type=text] {
+			width: 99%;
+		}
+		#filters td {
+			text-align: right;
 		}
 	</style>
 
@@ -127,6 +153,16 @@ pre .clojure .title {
 			<p>This is a 
 			{% if is_list %}list of <strong>{{ resource_name_plural }}</strong>{% else %}<strong>{{ resource_name }}</strong> resource{% endif %}. <a href="http://opennorth.github.com/Open511API/">Read the API documentation.</a> </p> 
 		{% endif %}
+		<form method="GET"><div id="filters">
+			<h4><a href="" class="show-filters">Parameters &rarr;</a></h4>
+			<table class="table" style="display:none">
+				<tr class="controls" style="visibility:hidden">
+					<th><a href="" class="add-row">+</a></th>
+					<td><input type="submit" class="btn btn-success" value="Update"></td>
+					<td></td>
+				</tr>
+			</table>
+		</div></form>
 		<div id="code_body">
 		<ul class="nav nav-tabs">
 			<li{% if response_format == "xml" %} class="active"{% endif %}><a href="" data-tab="xml">XML</a></li>
@@ -136,8 +172,9 @@ pre .clojure .title {
 	</div>
 <script src="{{ STATIC_URL }}open511/vendor/highlight.min.js"></script>
 <script src="{{ STATIC_URL }}open511/vendor/jquery.min.js"></script>
-<script>hljs.initHighlightingOnLoad();</script>
+<script src="{{ STATIC_URL }}open511/vendor/underscore.min.js"></script>
 <script type="text/javascript">
+hljs.initHighlightingOnLoad();
 $(function() {
 	$('ul.nav-tabs a').click(function(e) {
 		e.preventDefault();
@@ -145,6 +182,69 @@ $(function() {
 		document.cookie = 'open511_browser_format=' + format + ';path=/';
 		window.location.reload(true);
 	});
+
+	var filterRow = '<tr><th class="name"></th><td class="value"></td><td class="closecol"><button type="button" class="close">&times;</button></td></tr>'
+
+	var initFilters = function(get_params, available_filters) {
+		var $filterTable = $('#filters table');
+		var $controls = $filterTable.find('.controls');
+
+		if (available_filters) {
+			var $filterSelect = $('<select class="key"><option></option></select>');
+			_.each(available_filters, function(filter) {
+				if (_.indexOf(get_params, filter) == -1) {
+					$filterSelect.append(
+						$('<option />').attr('value', filter).text(filter)
+					);
+				}
+			});
+		}
+		else {
+			var $filterSelect = $('<input type="text" class="key">');
+		}
+
+		_.each(get_params, function(filter) {
+			var $row = $(filterRow);
+			$row.find('.name').text(filter[0]);
+			$row.find('.value').append(
+				$('<input type="text" />').val(filter[1]).attr('name', filter[0])
+			);
+			$controls.before($row);
+
+		});
+
+		var addBlankRow = function() {
+			var $row = $(filterRow);
+			$row.find('.value').append('<input type="text" />');
+			$row.find('.name').append($filterSelect.clone());
+			$controls.before($row)
+		}
+
+		$controls.on('click', '.add-row', function(e) {
+			e.preventDefault();
+			addBlankRow();
+		});
+
+		$filterTable.on('change', 'th .key', function(e) {
+			// Set the corresponding <input>'s name
+			$(this).closest('tr').find('.value input').attr('name', $(this).val());
+		});
+		$filterTable.on('click', 'button.close', function(e) {
+			$(this).closest('tr').remove();
+		});
+		$('.show-filters').on('click', function(e) {
+			e.preventDefault();
+			$(this).remove();
+			$filterTable.slideDown();
+		});
+		$filterTable.on('change keypress', 'input,select', function() {
+			$controls.css('visibility', 'visible');
+		});
+
+		addBlankRow();
+	};
+
+	initFilters({{ get_params|json }}{% if available_filters %}, {{ available_filters|json }}{% endif %});
 });
 </script>
 </body>

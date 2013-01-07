@@ -159,8 +159,15 @@ class APIView(View):
 
         ctx = {
             'response_format': request.response_format,
-            'response_content': mark_safe(response_content)
+            'response_content': mark_safe(response_content),
+            'get_params': request.GET.items(),
         }
+
+        if 'accept-language' not in request.GET:
+            ctx['get_params'] += [['accept-language', unicode(request.accept_language)]]
+
+        if getattr(self, 'filters', None):
+            ctx['available_filters'] = self.filters.keys()
 
         ctx['is_list'] = isinstance(self, ModelListAPIView)
         model = getattr(self, 'model', None)
