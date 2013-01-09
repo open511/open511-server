@@ -14,7 +14,7 @@ from open511.models import RoadEvent, Jurisdiction
 from open511.utils.views import APIView, ModelListAPIView, Resource
 
 
-def filter_status(qs, filter_type, value):
+def filter_status(qs, value):
     if value.lower() == 'active':
         return qs.filter(active=True)
     elif value.lower() == 'archived':
@@ -23,33 +23,44 @@ def filter_status(qs, filter_type, value):
         return qs.none()
 
 
-def filter_xpath(xpath, qs, filter_type, value, xml_field='xml_data', typecast='text'):
+def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text'):
     return qs.extra(
         where=['(xpath(%s, {0}))::{1}[] @> ARRAY[%s]'.format(xml_field, typecast)],
         params=[xpath, value]
     )
 
 
-def filter_db(fieldname, qs, filter_type, value):
+def filter_db(fieldname, qs, value):
     return qs.filter(**{fieldname: value})
 
 
-def filter_datetime(fieldname, qs, filter_type, value, allowable_filters=['gt', 'gte', 'lt', 'lte']):
+def filter_datetime(fieldname, qs, value):
+    query_type, value = _parse_operator_from_value(value)
     value = dateutil.parser.parse(value)
-    if filter_type in allowable_filters:
-        query = '__'.join((fieldname, filter_type))
-    else:
-        query = fieldname
-    return qs.filter(**{query: value})
+    if not value.tzinfo:
+        raise ValueError("Time-based filters must provide a timezone")
+    return qs.filter(**{'__'.join((fieldname, query_type)): value})
 
 
-def filter_bbox(qs, filter_type, value, fieldname='geom'):
+def filter_bbox(qs, value, fieldname='geom'):
     try:
         coords = [float(n) for n in value.split(',')]
     except ValueError:
         raise # FIXME
     assert len(coords) == 4
     return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
+
+FILTER_OPERATORS = [
+    ('<=', 'lte'),
+    ('>=', 'gte'),
+    ('<', 'lt'),
+    ('>', 'gt')
+]
+def _parse_operator_from_value(value):
+    for op, query_type in FILTER_OPERATORS:
+        if value.startswith(op):
+            return query_type, value[len(op):]
+    return 'exact', value
 
 
 class RoadEventListView(ModelListAPIView):
@@ -72,6 +83,7 @@ class RoadEventListView(ModelListAPIView):
         'city': partial(filter_xpath, 'roads/road/city/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
+        'in_effect_on': None,  # dealt with in post_filter
         # FIXME groupedEvent
         # FIXME schedule
     }
