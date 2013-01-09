@@ -1,3 +1,4 @@
+import datetime
 from functools import partial
 import json
 
@@ -7,16 +8,19 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
+from pytz import utc
 
 from open511.models import RoadEvent, Jurisdiction
 from open511.utils.views import APIView, ModelListAPIView, Resource
 
 
 def filter_status(qs, filter_type, value):
-    if value == 'active':
+    if value.lower() == 'active':
         return qs.filter(active=True)
-    elif value == 'archived':
+    elif value.lower() == 'archived':
         return qs.filter(active=False)
+    else:
+        return qs.none()
 
 
 def filter_xpath(xpath, qs, filter_type, value, xml_field='xml_data', typecast='text'):
@@ -24,6 +28,10 @@ def filter_xpath(xpath, qs, filter_type, value, xml_field='xml_data', typecast='
         where=['(xpath(%s, {0}))::{1}[] @> ARRAY[%s]'.format(xml_field, typecast)],
         params=[xpath, value]
     )
+
+
+def filter_db(fieldname, qs, filter_type, value):
+    return qs.filter(**{fieldname: value})
 
 
 def filter_datetime(fieldname, qs, filter_type, value, allowable_filters=['gt', 'gte', 'lt', 'lte']):
@@ -63,16 +71,26 @@ class RoadEventListView(ModelListAPIView):
         'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
         'city': partial(filter_xpath, 'roads/road/city/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
+        'id': partial(filter_db, 'id'),
         # FIXME groupedEvent
         # FIXME schedule
     }
 
     def post_filter(self, request, qs):
         objects = super(RoadEventListView, self).post_filter(request, qs)
-        if 'in_effect_on' in request.GET:
+        if 'in_effect_on' in request.REQUEST:
             # FIXME inefficient - implement on DB
-            query = dateutil.parser.parse(request.GET['in_effect_on']).date()
-            objects = filter(lambda o: o.schedule.includes(query), objects)
+            if request.REQUEST['in_effect_on'] == 'now':
+                start, end = utc.localize(datetime.datetime.utcnow()), None
+            else:
+                raw_start, _, raw_end = request.REQUEST['in_effect_on'].partition(',')
+                start = dateutil.parser.parse(raw_start)
+                end = dateutil.parser.parse(raw_end) if raw_end else None
+            if end:
+                filter_func = lambda o: o.schedule.active_within_range(start, end)
+            else:
+                filter_func = lambda o: o.schedule.includes(start)
+            objects = filter(filter_func, objects)
         return objects
 
     def get_qs(self, request, jurisdiction_slug=None):
@@ -81,7 +99,7 @@ class RoadEventListView(ModelListAPIView):
             jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
             qs = qs.filter(jurisdiction=jur)
 
-        if 'status' not in request.GET:
+        if 'status' not in request.REQUEST:
             # By default, show only active events
             qs = qs.filter(active=True)
 

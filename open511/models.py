@@ -14,6 +14,7 @@ import dateutil.parser
 from lxml import etree
 from lxml.builder import E
 import requests
+import pytz
 
 from open511.fields import XMLField
 from open511.utils.calendar import Schedule
@@ -103,6 +104,10 @@ class JurisdictionManager(models.GeoManager):
         jur.save()
         return jur
 
+    def get_default_timezone_for(self, id):
+        # FIXME cache
+        return self.get(pk=id).default_timezone
+
 
 class Jurisdiction(_Open511Model, XMLModelMixin):
 
@@ -144,6 +149,11 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
     @property
     def name(self):
         return self.get_text_value('name')
+
+    @property
+    def default_timezone(self):
+        tzname = self.xml_elem.findtext('timezone')
+        return pytz.timezone(tzname) if tzname else None
 
 
 class RoadEventManager(models.GeoManager):
@@ -195,7 +205,7 @@ class RoadEventManager(models.GeoManager):
 
         status = event.xpath('status')
         if status:
-            if status[0].text == 'archived':
+            if status[0].text.lower() == 'archived':
                 rdev.active = False
 
         try:
@@ -305,14 +315,14 @@ class RoadEvent(_Open511Model, XMLModelMixin):
                     and child.tag in ELEMENTS_LOOKUP
                     and ELEMENTS_LOOKUP[child.tag].type == 'TEXT'):
                 options = self._get_text_elems(child.tag, root=parent)
-                rejects |= set(o for l,o in options.items() if l != lang)
+                rejects |= set(o for l, o in options.items() if l != lang)
         for reject in rejects:
             parent.remove(reject)
 
     def to_full_xml_element(self, accept_language=None):
         el = deepcopy(self.xml_elem)
 
-        el.insert(0, E.status('active' if self.active else 'archived'))
+        el.insert(0, E.status('ACTIVE' if self.active else 'ARCHIVED'))
 
         link = etree.Element(ATOM_LINK)
         link.set('rel', 'jurisdiction')
@@ -385,6 +395,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def schedule(self):
         sched = self.xml_elem.find('schedule')
         if sched is None:
-            return Schedule(E.schedule())
-        return Schedule(sched)
+            raise ValidationError("Schedule is required")
+        return Schedule(sched,
+            default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
 

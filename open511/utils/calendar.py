@@ -1,7 +1,11 @@
 from collections import namedtuple
 import datetime
 
+from django.core.exceptions import ValidationError
+
 from dateutil import rrule
+import pytz
+from pytz import utc
 
 from open511.utils.cache import memoize_method
 
@@ -34,9 +38,10 @@ class Schedule(object):
         'SU': 6
     }
 
-    def __init__(self, root):
+    def __init__(self, root, default_timezone=None):
         assert root.tag == 'schedule'
         self.root = root
+        self.default_timezone = default_timezone
 
     @property
     @memoize_method
@@ -52,14 +57,23 @@ class Schedule(object):
             ])
         return ex
 
-    def includes(self, query):
-        """Does this schedule include the provided datetime or date?"""
-        if isinstance(query, datetime.date):
-            query_date = query
-            query_time = None
+    @property
+    @memoize_method
+    def timezone(self):
+        tzname = self.root.findtext('timezone')
+        if tzname:
+            return pytz.timezone(tzname)
+        elif self.default_timezone:
+            return self.default_timezone
         else:
-            query_date = query.date()
-            query_time = query.time()
+            raise ValidationError("The event doesn't have a timezone, and nor does the jurisdiction.")
+
+    def includes(self, query):
+        """Does this schedule include the provided time?
+        query should be a timezone-aware datetime"""
+        query = query.astimezone(self.timezone)
+        query_date = query.date()
+        query_time = query.time()
 
         # Is the provided time an exception for this schedule?
         specific = self.specific_dates.get(query_date)
@@ -90,12 +104,10 @@ class Schedule(object):
 
     def active_within_range(self, query_start, query_end):
         """Is this event ever active between query_start and query_end,
-        which are datetime or date objects?"""
+        which are timezone-aware datetimes?"""
 
-        if isinstance(query_start, datetime.date):
-            query_start = datetime.datetime.combine(query_start, datetime.time(0, 0))
-        if isinstance(query_start, datetime.date):
-            query_start = datetime.datetime.combine(query_start, datetime.time(0, 0))
+        query_start = query_start.astimezone(self.timezone)
+        query_end = query_end.astimezone(self.timezone)
 
         for range in self.to_periods(range_start=query_start.date(), range_end=query_end.date()):
             if ((query_start <= range.start <= query_end)
@@ -113,11 +125,12 @@ class Schedule(object):
         range_start and range_end are datetime.date objects limiting the periods returned
         """
 
+        tz = self.timezone
         def _combine(base, periods):
             return [
                 Period(
-                    datetime.datetime.combine(base, period.start),
-                    datetime.datetime.combine(base, period.end)
+                    tz.localize(datetime.datetime.combine(base, period.start)),
+                    tz.localize(datetime.datetime.combine(base, period.end))
                 ) for period in periods
             ]
 
