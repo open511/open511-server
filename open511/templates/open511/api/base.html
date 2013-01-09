@@ -220,6 +220,10 @@ $(function() {
 			$controls.before($row)
 		}
 
+		var showControls = function() {
+			$controls.css('visibility', 'visible');
+		};
+
 		$controls.on('click', '.add-row', function(e) {
 			e.preventDefault();
 			addBlankRow();
@@ -231,15 +235,14 @@ $(function() {
 		});
 		$filterTable.on('click', 'button.close', function(e) {
 			$(this).closest('tr').remove();
+			showControls();
 		});
 		$('.show-filters').on('click', function(e) {
 			e.preventDefault();
 			$(this).remove();
 			$filterTable.slideDown();
 		});
-		$filterTable.on('change keypress', 'input,select', function() {
-			$controls.css('visibility', 'visible');
-		});
+		$filterTable.on('change keypress', 'input,select', showControls);
 
 		addBlankRow();
 	};
