@@ -92,12 +92,12 @@ class JurisdictionManager(models.GeoManager):
             )
 
             try:
-                created = xml_jurisdiction.xpath('creationDate/text()')[0]
+                created = xml_jurisdiction.xpath('created/text()')[0]
                 jur.created = dateutil.parser.parse(created)
             except IndexError:
                 pass
 
-        for path in ['status', 'creationDate', 'lastUpdate', 'atom:link[@rel="self"]']:
+        for path in ['status', 'created', 'updated', 'atom:link[@rel="self"]']:
             for elem in xml_jurisdiction.xpath(path, namespaces=NSMAP):
                 xml_jurisdiction.remove(elem)
         jur.xml_elem = xml_jurisdiction
@@ -141,8 +141,8 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         link.set('href', self.full_url)
         el.insert(0, link)
 
-        el.append(E.creationDate(self.created.isoformat()))
-        el.append(E.lastUpdate(self.updated.isoformat()))
+        el.append(E.created(self.created.isoformat()))
+        el.append(E.updated(self.updated.isoformat()))
 
         return el
 
@@ -209,14 +209,14 @@ class RoadEventManager(models.GeoManager):
                 rdev.active = False
 
         try:
-            created = event.xpath('creationDate/text()')[0]
+            created = event.xpath('created/text()')[0]
             created = dateutil.parser.parse(created)
             if (not rdev.created) or created < rdev.created:
                 rdev.created = created
         except IndexError:
             pass
 
-        for path in ['status', 'creationDate', 'lastUpdate']:
+        for path in ['status', 'created', 'updated']:
             for elem in event.xpath(path):
                 event.remove(elem)
 
@@ -334,8 +334,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         link.set('href', self.url)
         el.insert(0, link)
 
-        el.append(E.creationDate(self.created.isoformat()))
-        el.append(E.lastUpdate(self.updated.isoformat()))
+        el.append(E.created(self.created.isoformat()))
+        el.append(E.updated(self.updated.isoformat()))
 
         if accept_language:
             best_language = self.determine_best_language(accept_language)
