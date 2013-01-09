@@ -52,26 +52,26 @@ class RoadEventListView(ModelListAPIView):
 
     filters = {
         'status': filter_status,
-        'eventType': partial(filter_xpath, 'eventType/text()'),
-        'creationDate': partial(filter_datetime, 'created'),
-        'lastUpdate': partial(filter_datetime, 'updated'),
+        'event_type': partial(filter_xpath, 'event_type/text()'),
+        'created': partial(filter_datetime, 'created'),
+        'updated': partial(filter_datetime, 'updated'),
         'bbox': filter_bbox,
         # FIXME jurisdiction
         # FIXME severity
-        'eventSubType': partial(filter_xpath, 'eventSubType/text()'),
-        'travelerMessage': partial(filter_xpath, 'travelerMessage/text()'),
-        'roadName': partial(filter_xpath, 'roads/road/roadName/text()'),
+        'event_subtype': partial(filter_xpath, 'event_subtype/text()'),
+        'traveler_message': partial(filter_xpath, 'traveler_message/text()'),
+        'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
         'city': partial(filter_xpath, 'roads/road/city/text()'),
-        'impactedSystem': partial(filter_xpath, 'roads/road/impactedSystems/impactedSystem/text()'),
+        'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         # FIXME groupedEvent
         # FIXME schedule
     }
 
     def post_filter(self, request, qs):
         objects = super(RoadEventListView, self).post_filter(request, qs)
-        if 'inEffectOn' in request.GET:
+        if 'in_effect_on' in request.GET:
             # FIXME inefficient - implement on DB
-            query = dateutil.parser.parse(request.GET['inEffectOn']).date()
+            query = dateutil.parser.parse(request.GET['in_effect_on']).date()
             objects = filter(lambda o: o.schedule.includes(query), objects)
         return objects
 

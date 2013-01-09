@@ -47,7 +47,7 @@ class Command(BaseCommand):
         if root.get(XML_BASE):
             opts['base_url'] = root.get(XML_BASE)
 
-        for event in root.xpath('roadEvent'):
+        for event in root.xpath('event'):
             try:
                 rdev = RoadEvent.objects.update_or_create_from_xml(event, **opts)
                 logger.info("Imported event %s" % rdev.id)

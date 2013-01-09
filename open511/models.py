@@ -180,14 +180,14 @@ class RoadEventManager(models.GeoManager):
             rdev = self.model(id=id, jurisdiction=jurisdiction, external_url=external_url)
 
         # Extract the geometry
-        geometry = event.xpath('geometry')[0]
+        geometry = event.xpath('geography')[0]
         gml = etree.tostring(geometry[0])
         ewkt = gml_to_ewkt(gml, force_2D=True)
         rdev.geom = geos_geom_from_string(ewkt)
 
         # And regenerate the GML so it's consistent with the PostGIS representation
         event.remove(geometry)
-        event.append(E.geometry(geom_to_xml_element(rdev.geom)))
+        event.append(E.geography(geom_to_xml_element(rdev.geom)))
 
         # Remove the ID from the stored XML (we keep it in the table)
         if 'id' in event.attrib:
@@ -220,14 +220,14 @@ class RoadEventManager(models.GeoManager):
 
 
 def validate_roadevent_xml(root):
-    if not getattr(root, 'tag', '') == 'roadEvent':
+    if not getattr(root, 'tag', '') == 'event':
         try:
             root = etree.fromstring(root)
         except Exception as e:
             raise ValidationError(e)
 
     # For now, just makes sure a bunch of provided xpaths are present
-    for xp in ('headline', 'eventType', 'severity', 'schedule/startDate'):
+    for xp in ('headline', 'event_type', 'severity', 'schedule/start_date'):
         if not root.xpath(xp):
             raise ValidationError("%s is required" % xp)
 
@@ -243,7 +243,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'))
-    xml_data = XMLField(default='<roadEvent xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
+    xml_data = XMLField(default='<event xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
         validators=[validate_roadevent_xml])
 
     objects = RoadEventManager()
@@ -350,7 +350,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     def update(self, key, val):
 
-        if key in ('lastUpdated', 'creationDate'):
+        if key in ('updated', 'created'):
             raise NotImplementedError
         elif key == 'status':
             self.active = (val == 'active')
@@ -362,7 +362,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             update_el.getparent().remove(update_el)
         elif isinstance(val, basestring):
             update_el.text = val
-        elif key == 'geometry':
+        elif key == 'geography':
             # FIXME update actual geometry column
             if 'opengis' in getattr(val, 'tag', ''):
                 wkt = gml_to_ewkt(etree.tostring(val))

@@ -51,10 +51,10 @@ def get_list_of_chantiers(action='EntraveMajeure', bounds=ALL_QUEBEC_BOUNDS):
 
 def get_roadevent_from_summary(summary):
 
-    elem = E.roadEvent(id=summary['id'])
+    elem = E.event(id=summary['id'])
 
     elem.append(
-        E.geometry(
+        E.geography(
             geom_to_xml_element(
                 Point(float(summary['lng']), float(summary['lat']), srid=4326)
             )
@@ -72,7 +72,7 @@ def get_roadevent_from_summary(summary):
             elem.append(e)
 
     set_val('status', 'active')
-    set_val('eventType', 'Roadwork')
+    set_val('event_type', 'Roadwork')
     set_val('severity', '2' if summary['id'].startswith('maj') else '1')
 
     root = lxml.html.fragment_fromstring(resp.read().decode('utf8'))
@@ -93,9 +93,9 @@ def get_roadevent_from_summary(summary):
     if start_date or end_date:
         sked = E.schedule()
         if start_date:
-            sked.append(E.startDate(unicode(_str_to_date(start_date))))
+            sked.append(E.start_date(unicode(_str_to_date(start_date))))
         if end_date:
-            sked.append(E.endDate(unicode(_str_to_date(end_date))))
+            sked.append(E.end_date(unicode(_str_to_date(end_date))))
         elem.append(sked)
 
     return elem

@@ -44,7 +44,7 @@ class Schedule(object):
         """A dict of dates -> Period time tuples representing exceptions
         to the base recurrence pattern."""
         ex = {}
-        for sd in self.root.xpath('specificDates/specificDate'):
+        for sd in self.root.xpath('specific_dates/specific_date'):
             d = text_to_date(sd.findtext('date'))
             ex.setdefault(d, []).extend([
                 _time_el_to_period(t)
@@ -160,12 +160,12 @@ class Schedule(object):
     @property
     def start_date(self):
         """Start date of event recurrence, as datetime.date or None."""
-        return text_to_date(self.root.findtext('startDate'))
+        return text_to_date(self.root.findtext('start_date'))
 
     @property
     def end_date(self):
         """End date of event recurrence, as datetime.date or None."""
-        return text_to_date(self.root.findtext('endDate'))
+        return text_to_date(self.root.findtext('end_date'))
 
     @property
     @memoize_method
@@ -186,7 +186,7 @@ class Schedule(object):
     def weekdays(self):
         """A set of integers representing the weekdays the event recurs on,
         with Monday = 0 and Sunday = 6."""
-        wd = self.root.findtext('daysOfWeek')
+        wd = self.root.findtext('days_of_week')
         if not wd:
             return set(range(7))
         days = set()

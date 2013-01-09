@@ -33,7 +33,7 @@ def feature_to_open511_element(feature):
         id += 'x'
     ids_seen.add(id)
 
-    elem = E.roadEvent(id=id)
+    elem = E.event(id=id)
 
     def set_val(tag, val):
         if val not in (None, ''):
@@ -42,7 +42,7 @@ def feature_to_open511_element(feature):
             elem.append(e)
 
     set_val('status', 'active')
-    set_val('eventType', 'Roadwork')
+    set_val('event_type', 'Roadwork')
     set_val('severity', '1')
 
     set_val('headline', feature.get('Name').decode('utf8'))
@@ -86,14 +86,14 @@ def feature_to_open511_element(feature):
             start_date = _fr_string_to_date(start_date)
             end_date = _fr_string_to_date(end_date)
             if start_date:
-                sked = E.schedule(E.startDate(unicode(start_date)))
+                sked = E.schedule(E.start_date(unicode(start_date)))
                 if end_date:
-                    sked.append(E.endDate(unicode(end_date)))
+                    sked.append(E.end_date(unicode(end_date)))
                 elem.append(sked)
         except IndexError:
             pass
 
-    elem.append(E.geometry(
+    elem.append(E.geography(
         geom_to_xml_element(feature.geom)
     ))
 
