@@ -65,7 +65,7 @@ class JurisdictionManager(models.GeoManager):
                     pass
 
         # Looks like we need to create a new jurisdiction
-        req = requests.get(url)
+        req = requests.get(url, headers={'Accept': 'application/xml'})
         root = etree.fromstring(req.content)
         jur = root.xpath('jurisdiction')[0]
         self_url = jur.xpath('atom:link[@rel="self"]/@href', namespaces=NSMAP)[0]
