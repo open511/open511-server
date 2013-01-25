@@ -1,3 +1,4 @@
+import datetime
 from functools import partial
 import json
 
@@ -7,41 +8,61 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
+from pytz import utc
 
 from open511.models import RoadEvent, Jurisdiction
 from open511.utils.views import APIView, ModelListAPIView, Resource
 
 
-def filter_status(qs, filter_type, value):
-    if value == 'active':
+def filter_status(qs, value):
+    if value.lower() == 'active':
         return qs.filter(active=True)
-    elif value == 'archived':
+    elif value.lower() == 'archived':
         return qs.filter(active=False)
+    elif value == '*':
+        return qs
+    else:
+        return qs.none()
 
 
-def filter_xpath(xpath, qs, filter_type, value, xml_field='xml_data', typecast='text'):
+def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text'):
     return qs.extra(
         where=['(xpath(%s, {0}))::{1}[] @> ARRAY[%s]'.format(xml_field, typecast)],
         params=[xpath, value]
     )
 
 
-def filter_datetime(fieldname, qs, filter_type, value, allowable_filters=['gt', 'gte', 'lt', 'lte']):
+def filter_db(fieldname, qs, value):
+    return qs.filter(**{fieldname: value})
+
+
+def filter_datetime(fieldname, qs, value):
+    query_type, value = _parse_operator_from_value(value)
     value = dateutil.parser.parse(value)
-    if filter_type in allowable_filters:
-        query = '__'.join((fieldname, filter_type))
-    else:
-        query = fieldname
-    return qs.filter(**{query: value})
+    if not value.tzinfo:
+        raise ValueError("Time-based filters must provide a timezone")
+    return qs.filter(**{'__'.join((fieldname, query_type)): value})
 
 
-def filter_bbox(qs, filter_type, value, fieldname='geom'):
+def filter_bbox(qs, value, fieldname='geom'):
     try:
         coords = [float(n) for n in value.split(',')]
     except ValueError:
         raise # FIXME
     assert len(coords) == 4
     return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
+
+FILTER_OPERATORS = [
+    ('<=', 'lte'),
+    ('>=', 'gte'),
+    ('<', 'lt'),
+    ('>', 'gt')
+]
+def _parse_operator_from_value(value):
+    for op, query_type in FILTER_OPERATORS:
+        if value.startswith(op):
+            return query_type, value[len(op):]
+    return 'exact', value
 
 
 class RoadEventListView(ModelListAPIView):
@@ -52,27 +73,38 @@ class RoadEventListView(ModelListAPIView):
 
     filters = {
         'status': filter_status,
-        'eventType': partial(filter_xpath, 'eventType/text()'),
-        'creationDate': partial(filter_datetime, 'created'),
-        'lastUpdate': partial(filter_datetime, 'updated'),
+        'event_type': partial(filter_xpath, 'event_type/text()'),
+        'created': partial(filter_datetime, 'created'),
+        'updated': partial(filter_datetime, 'updated'),
         'bbox': filter_bbox,
         # FIXME jurisdiction
         # FIXME severity
-        'eventSubType': partial(filter_xpath, 'eventSubType/text()'),
-        'travelerMessage': partial(filter_xpath, 'travelerMessage/text()'),
-        'roadName': partial(filter_xpath, 'roads/road/roadName/text()'),
+        'event_subtype': partial(filter_xpath, 'event_subtype/text()'),
+        'traveler_message': partial(filter_xpath, 'traveler_message/text()'),
+        'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
         'city': partial(filter_xpath, 'roads/road/city/text()'),
-        'impactedSystem': partial(filter_xpath, 'roads/road/impactedSystems/impactedSystem/text()'),
+        'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
+        'id': partial(filter_db, 'id'),
+        'in_effect_on': None,  # dealt with in post_filter
         # FIXME groupedEvent
         # FIXME schedule
     }
 
     def post_filter(self, request, qs):
         objects = super(RoadEventListView, self).post_filter(request, qs)
-        if 'inEffectOn' in request.GET:
+        if 'in_effect_on' in request.REQUEST:
             # FIXME inefficient - implement on DB
-            query = dateutil.parser.parse(request.GET['inEffectOn']).date()
-            objects = filter(lambda o: o.schedule.includes(query), objects)
+            if request.REQUEST['in_effect_on'] == 'now':
+                start, end = utc.localize(datetime.datetime.utcnow()), None
+            else:
+                raw_start, _, raw_end = request.REQUEST['in_effect_on'].partition(',')
+                start = dateutil.parser.parse(raw_start)
+                end = dateutil.parser.parse(raw_end) if raw_end else None
+            if end:
+                filter_func = lambda o: o.schedule.active_within_range(start, end)
+            else:
+                filter_func = lambda o: o.schedule.includes(start)
+            objects = filter(filter_func, objects)
         return objects
 
     def get_qs(self, request, jurisdiction_slug=None):
@@ -81,7 +113,7 @@ class RoadEventListView(ModelListAPIView):
             jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
             qs = qs.filter(jurisdiction=jur)
 
-        if 'status' not in request.GET:
+        if 'status' not in request.REQUEST:
             # By default, show only active events
             qs = qs.filter(active=True)
 

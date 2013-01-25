@@ -14,6 +14,7 @@ import dateutil.parser
 from lxml import etree
 from lxml.builder import E
 import requests
+import pytz
 
 from open511.fields import XMLField
 from open511.utils.calendar import Schedule
@@ -91,17 +92,21 @@ class JurisdictionManager(models.GeoManager):
             )
 
             try:
-                created = xml_jurisdiction.xpath('creationDate/text()')[0]
+                created = xml_jurisdiction.xpath('created/text()')[0]
                 jur.created = dateutil.parser.parse(created)
             except IndexError:
                 pass
 
-        for path in ['status', 'creationDate', 'lastUpdate', 'atom:link[@rel="self"]']:
+        for path in ['status', 'created', 'updated', 'atom:link[@rel="self"]']:
             for elem in xml_jurisdiction.xpath(path, namespaces=NSMAP):
                 xml_jurisdiction.remove(elem)
         jur.xml_elem = xml_jurisdiction
         jur.save()
         return jur
+
+    def get_default_timezone_for(self, id):
+        # FIXME cache
+        return self.get(pk=id).default_timezone
 
 
 class Jurisdiction(_Open511Model, XMLModelMixin):
@@ -136,14 +141,19 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         link.set('href', self.full_url)
         el.insert(0, link)
 
-        el.append(E.creationDate(self.created.isoformat()))
-        el.append(E.lastUpdate(self.updated.isoformat()))
+        el.append(E.created(self.created.isoformat()))
+        el.append(E.updated(self.updated.isoformat()))
 
         return el
 
     @property
     def name(self):
         return self.get_text_value('name')
+
+    @property
+    def default_timezone(self):
+        tzname = self.xml_elem.findtext('timezone')
+        return pytz.timezone(tzname) if tzname else None
 
 
 class RoadEventManager(models.GeoManager):
@@ -180,14 +190,14 @@ class RoadEventManager(models.GeoManager):
             rdev = self.model(id=id, jurisdiction=jurisdiction, external_url=external_url)
 
         # Extract the geometry
-        geometry = event.xpath('geometry')[0]
+        geometry = event.xpath('geography')[0]
         gml = etree.tostring(geometry[0])
         ewkt = gml_to_ewkt(gml, force_2D=True)
         rdev.geom = geos_geom_from_string(ewkt)
 
         # And regenerate the GML so it's consistent with the PostGIS representation
         event.remove(geometry)
-        event.append(E.geometry(geom_to_xml_element(rdev.geom)))
+        event.append(E.geography(geom_to_xml_element(rdev.geom)))
 
         # Remove the ID from the stored XML (we keep it in the table)
         if 'id' in event.attrib:
@@ -195,18 +205,18 @@ class RoadEventManager(models.GeoManager):
 
         status = event.xpath('status')
         if status:
-            if status[0].text == 'archived':
+            if status[0].text.lower() == 'archived':
                 rdev.active = False
 
         try:
-            created = event.xpath('creationDate/text()')[0]
+            created = event.xpath('created/text()')[0]
             created = dateutil.parser.parse(created)
             if (not rdev.created) or created < rdev.created:
                 rdev.created = created
         except IndexError:
             pass
 
-        for path in ['status', 'creationDate', 'lastUpdate']:
+        for path in ['status', 'created', 'updated']:
             for elem in event.xpath(path):
                 event.remove(elem)
 
@@ -220,14 +230,14 @@ class RoadEventManager(models.GeoManager):
 
 
 def validate_roadevent_xml(root):
-    if not getattr(root, 'tag', '') == 'roadEvent':
+    if not getattr(root, 'tag', '') == 'event':
         try:
             root = etree.fromstring(root)
         except Exception as e:
             raise ValidationError(e)
 
     # For now, just makes sure a bunch of provided xpaths are present
-    for xp in ('headline', 'eventType', 'severity', 'schedule/startDate'):
+    for xp in ('headline', 'event_type', 'severity', 'schedule/start_date'):
         if not root.xpath(xp):
             raise ValidationError("%s is required" % xp)
 
@@ -243,7 +253,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'))
-    xml_data = XMLField(default='<roadEvent xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
+    xml_data = XMLField(default='<event xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
         validators=[validate_roadevent_xml])
 
     objects = RoadEventManager()
@@ -305,14 +315,14 @@ class RoadEvent(_Open511Model, XMLModelMixin):
                     and child.tag in ELEMENTS_LOOKUP
                     and ELEMENTS_LOOKUP[child.tag].type == 'TEXT'):
                 options = self._get_text_elems(child.tag, root=parent)
-                rejects |= set(o for l,o in options.items() if l != lang)
+                rejects |= set(o for l, o in options.items() if l != lang)
         for reject in rejects:
             parent.remove(reject)
 
     def to_full_xml_element(self, accept_language=None):
         el = deepcopy(self.xml_elem)
 
-        el.insert(0, E.status('active' if self.active else 'archived'))
+        el.insert(0, E.status('ACTIVE' if self.active else 'ARCHIVED'))
 
         link = etree.Element(ATOM_LINK)
         link.set('rel', 'jurisdiction')
@@ -324,8 +334,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         link.set('href', self.url)
         el.insert(0, link)
 
-        el.append(E.creationDate(self.created.isoformat()))
-        el.append(E.lastUpdate(self.updated.isoformat()))
+        el.append(E.created(self.created.isoformat()))
+        el.append(E.updated(self.updated.isoformat()))
 
         if accept_language:
             best_language = self.determine_best_language(accept_language)
@@ -350,7 +360,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     def update(self, key, val):
 
-        if key in ('lastUpdated', 'creationDate'):
+        if key in ('updated', 'created'):
             raise NotImplementedError
         elif key == 'status':
             self.active = (val == 'active')
@@ -362,7 +372,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             update_el.getparent().remove(update_el)
         elif isinstance(val, basestring):
             update_el.text = val
-        elif key == 'geometry':
+        elif key == 'geography':
             # FIXME update actual geometry column
             if 'opengis' in getattr(val, 'tag', ''):
                 wkt = gml_to_ewkt(etree.tostring(val))
@@ -385,6 +395,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def schedule(self):
         sched = self.xml_elem.find('schedule')
         if sched is None:
-            return Schedule(E.schedule())
-        return Schedule(sched)
+            raise ValidationError("Schedule is required")
+        return Schedule(sched,
+            default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
 

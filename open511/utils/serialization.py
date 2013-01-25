@@ -45,14 +45,11 @@ def geom_to_xml_element(geom):
 DataField = namedtuple('DataField', 'tag type name')
 ELEMENTS = [
     DataField('headline', 'TEXT', _('Title')),
-    DataField('eventType', 'CHAR', _('Event type')),
+    DataField('event_type', 'CHAR', _('Event type')),
     DataField('description', 'TEXT', _('Description')),
     DataField('severity', 'CHAR', _('Severity')),
-    DataField('trafficRestrictions', 'TEXT', _('Traffic Restrictions')),
+    DataField('traffic_restrictions', 'TEXT', _('Traffic Restrictions')),
     DataField('detour', 'TEXT', _('Detour')),
-    DataField('ExternalURL', 'CHAR', _('External URL')),
-    DataField('StartDate', 'DATE', _('Start date')),
-    DataField('EndDate', 'DATE', _('End date')),
 ]
 
 ELEMENTS_LOOKUP = dict((f.tag, f) for f in ELEMENTS)

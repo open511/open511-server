@@ -16,6 +16,7 @@ setup(
         'webob',
         'python-dateutil>=1.5,<2.0',
         'requests',
+        'pytz',
     ],
     entry_points = {
         'console_scripts': [

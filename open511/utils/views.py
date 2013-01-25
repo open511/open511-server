@@ -204,10 +204,9 @@ class ModelListAPIView(APIView):
     def get(self, request, **kwargs):
         qs = self.get_qs(request, **kwargs)
 
-        for filt, value in request.GET.items():
-            filter_name, x, filter_type = filt.partition('__')
-            if filter_name in self.filters:
-                qs = self.filters[filter_name](qs, filter_type, value)
+        for filter_name, value in request.GET.items():
+            if self.filters.get(filter_name):
+                qs = self.filters[filter_name](qs, value)
 
         objects = self.post_filter(request, qs)
 
