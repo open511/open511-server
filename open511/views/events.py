@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 import dateutil.parser
 from pytz import utc
 
-from open511.models import RoadEvent, Jurisdiction
+from open511.models import RoadEvent, Jurisdiction, SearchGeometry
 from open511.utils.views import APIView, ModelListAPIView, Resource
 
 
@@ -52,6 +52,10 @@ def filter_bbox(qs, value, fieldname='geom'):
     assert len(coords) == 4
     return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
 
+def filter_geography(qs, value):
+    search_geom = SearchGeometry.fromstring(value)
+    return qs.filter(geom__intersects=search_geom.geom)
+
 FILTER_OPERATORS = [
     ('<=', 'lte'),
     ('>=', 'gte'),
@@ -85,6 +89,7 @@ class RoadEventListView(ModelListAPIView):
         'city': partial(filter_xpath, 'roads/road/city/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
+        'geography': filter_geography,
         'in_effect_on': None,  # dealt with in post_filter
         # FIXME groupedEvent
         # FIXME schedule

@@ -4,19 +4,23 @@ from urlparse import urljoin
 
 from django.conf import settings
 from django.contrib.gis.db import models
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
 from django.core import urlresolvers
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc
 
 import dateutil.parser
+import hashlib
 from lxml import etree
 from lxml.builder import E
 import requests
 import pytz
 
 from open511.fields import XMLField
+from open511.utils.cache import memoize_method
 from open511.utils.calendar import Schedule
 from open511.utils.geojson import geojson_to_ewkt
 from open511.utils.postgis import gml_to_ewkt
@@ -399,3 +403,33 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         return Schedule(sched,
             default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
 
+HEX = frozenset('abcdef0123456789')
+class SearchGeometry(object):
+    """A saved geometry object, to be used in searches."""
+
+    DoesNotExist = ObjectDoesNotExist
+
+    def __init__(self, geom, id):
+        self.id = id
+        self.geom = geom
+
+    def save(self):
+        cache.set('searchgeometry_%s' % self.id, 
+            self.geom, 60*60*24) # FIXME configurable duration
+
+    @staticmethod
+    def get(key):
+        obj = cache.get('searchgeometry_%s' % key)
+        if obj is None:
+            raise SearchGeometry.DoesNotExist
+        else:
+            return SearchGeometry(obj, id=key)
+
+    @classmethod
+    def fromstring(cls, input):
+        if set(input) <= HEX:
+            # Looks like an ID
+            return cls.get(input)
+        geom = geos_geom_from_string(input)
+        id = hashlib.md5(input).hexdigest()
+        return cls(geom, id)
