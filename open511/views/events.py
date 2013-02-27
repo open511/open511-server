@@ -3,6 +3,7 @@ from functools import partial
 import json
 
 from django.contrib.gis.geos import Polygon
+from django.contrib.gis.measure import Distance
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -52,8 +53,10 @@ def filter_bbox(qs, value, fieldname='geom'):
     assert len(coords) == 4
     return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
 
-def filter_geography(qs, value):
+def filter_geography(qs, value, within=None):
     search_geom = SearchGeometry.fromstring(value)
+    if within is not None:
+        return qs.filter(geom__dwithin=(search_geom.geom, Distance(m=within)))
     return qs.filter(geom__intersects=search_geom.geom)
 
 FILTER_OPERATORS = [
@@ -89,7 +92,7 @@ class RoadEventListView(ModelListAPIView):
         'city': partial(filter_xpath, 'roads/road/city/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
-        'geography': filter_geography,
+        'geography': None,  # dealt with in post_filter
         'in_effect_on': None,  # dealt with in post_filter
         # FIXME groupedEvent
         # FIXME schedule
@@ -97,6 +100,11 @@ class RoadEventListView(ModelListAPIView):
 
     def post_filter(self, request, qs):
         objects = super(RoadEventListView, self).post_filter(request, qs)
+
+        if 'geography' in request.REQUEST:
+            objects = filter_geography(objects, request.REQUEST['geography'],
+                within=request.REQUEST.get('tolerance'))
+
         if 'in_effect_on' in request.REQUEST:
             # FIXME inefficient - implement on DB
             if request.REQUEST['in_effect_on'] == 'now':

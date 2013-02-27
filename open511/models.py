@@ -256,7 +256,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     external_url = models.URLField(blank=True, db_index=True)
 
-    geom = models.GeometryField(verbose_name=_('Geometry'))
+    geom = models.GeometryField(verbose_name=_('Geometry'), geography=True)
     xml_data = XMLField(default='<event xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
         validators=[validate_roadevent_xml])
 
