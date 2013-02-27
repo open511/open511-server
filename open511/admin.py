@@ -42,7 +42,7 @@ class BaseRoadEventForm(forms.BaseModelForm):
         model = RoadEvent
         exclude = ['xml_data']
 
-class RoadEventAdmin(admin.OSMGeoAdmin):
+class RoadEventAdmin(admin.ModelAdmin):
     list_display = ['headline', 'jurisdiction']
     list_filter = ['jurisdiction']
     search_fields = ['xml_data']
