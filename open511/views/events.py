@@ -4,6 +4,7 @@ import json
 
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.measure import Distance
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
@@ -93,6 +94,7 @@ class RoadEventListView(ModelListAPIView):
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
         'geography': None,  # dealt with in post_filter
+        'tolerance': None,  # dealth with in post_filter
         'in_effect_on': None,  # dealt with in post_filter
         # FIXME groupedEvent
         # FIXME schedule
@@ -145,6 +147,9 @@ class RoadEventListView(ModelListAPIView):
             Q(slug=filter(None, jurisdiction_url.split('/'))[-1])
         )
 
+        if not jurisdiction.can_edit(request.user):
+            raise PermissionDenied
+
         rdev = RoadEvent(jurisdiction=jurisdiction)
         for key, val in content.items():
             rdev.update(key, val)
@@ -161,6 +166,9 @@ class RoadEventView(APIView):
         # FIXME security, abstraction
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
         updates = json.loads(request.raw_post_data)
+
+        if not rdev.jurisdiction.can_edit(request.user):
+            raise PermissionDenied
 
         for key, val in updates.items():
             rdev.update(key, val)

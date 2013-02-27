@@ -2,6 +2,8 @@ import functools
 
 from django.conf import settings
 from django.contrib.admin.widgets import AdminDateWidget
+from django.contrib.auth.models import User
+from django.contrib.auth.admin import UserAdmin
 from django.contrib.gis import admin
 from django import forms
 from django.forms.models import ModelFormOptions
@@ -106,5 +108,18 @@ class RoadEventAdmin(admin.ModelAdmin):
 #         cls._meta = ModelFormOptions(BaseRoadEventForm.Meta)
 #         return cls
 
+class JurisdictionAdmin(admin.ModelAdmin):
+    filter_horizontal = ['permitted_users']
+
 admin.site.register(RoadEvent, RoadEventAdmin)
-admin.site.register(Jurisdiction)
+admin.site.register(Jurisdiction, JurisdictionAdmin)
+
+class JurInline(admin.TabularInline):
+    model = Jurisdiction.permitted_users.through
+    extra = 1
+
+class CustomUserAdmin(UserAdmin):
+    inlines = [JurInline]
+
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)

@@ -3,6 +3,7 @@ import datetime
 from urlparse import urljoin
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
@@ -123,6 +124,8 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
     xml_data = XMLField(default='<jurisdiction />')
 
+    permitted_users = models.ManyToManyField(User, blank=True)
+
     objects = JurisdictionManager()
 
     def __unicode__(self):
@@ -158,6 +161,9 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
     def default_timezone(self):
         tzname = self.xml_elem.findtext('timezone')
         return pytz.timezone(tzname) if tzname else None
+
+    def can_edit(self, user):
+        return self.permitted_users.filter(id=user.id).exists()
 
 
 class RoadEventManager(models.GeoManager):
