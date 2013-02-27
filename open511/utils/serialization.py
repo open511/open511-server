@@ -1,4 +1,5 @@
 from collections import namedtuple
+import json
 
 from lxml import etree
 from lxml.builder import E
@@ -9,11 +10,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 from open511.utils.geojson import gml_to_geojson
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'

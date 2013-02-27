@@ -1,8 +1,8 @@
+import json
 import re
 import urlparse
 
 from django.conf import settings
-from django.core.serializers.json import simplejson as json
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.template import loader, RequestContext
