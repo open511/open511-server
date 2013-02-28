@@ -1,6 +1,7 @@
 import datetime
 from functools import partial
 import json
+from urllib import urlencode
 
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.measure import Distance
@@ -100,6 +101,9 @@ class RoadEventListView(ModelListAPIView):
         # FIXME schedule
     }
 
+    unauthenticated_methods = ModelListAPIView.unauthenticated_methods + (
+        'POST',)
+
     def post_filter(self, request, qs):
         objects = super(RoadEventListView, self).post_filter(request, qs)
 
@@ -138,8 +142,18 @@ class RoadEventListView(ModelListAPIView):
         return obj.to_full_xml_element(accept_language=request.accept_language)
 
     def post(self, request):
-        # FIXME security, abstraction
-        content = json.loads(request.raw_post_data)
+        if request.META['CONTENT_TYPE'] == 'application/json':
+            return self.post_to_create(request)
+
+        opts = dict(request.POST)
+
+        return HttpResponseRedirect('?' + urlencode(opts))
+
+
+    def post_to_create(self, request):
+        if not request.user.is_authenticated():
+            raise PermissionDenied
+        content = json.loads(request.body)
 
         jurisdiction_url = content.pop('jurisdiction_url')
         jurisdiction = Jurisdiction.objects.get(

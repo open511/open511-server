@@ -21,6 +21,7 @@ import requests
 import pytz
 
 from open511.fields import XMLField
+from open511.utils import is_hex
 from open511.utils.cache import memoize_method
 from open511.utils.calendar import Schedule
 from open511.utils.geojson import geojson_to_ewkt
@@ -409,7 +410,6 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         return Schedule(sched,
             default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
 
-HEX = frozenset('abcdef0123456789')
 class SearchGeometry(object):
     """A saved geometry object, to be used in searches."""
 
@@ -420,6 +420,8 @@ class SearchGeometry(object):
         self.geom = geom
 
     def save(self):
+        if self.id is None:
+            self.id = hashlib.md5(self.geom.wkt).hexdigest()
         cache.set('searchgeometry_%s' % self.id, 
             self.geom, 60*60*24) # FIXME configurable duration
 
@@ -433,9 +435,8 @@ class SearchGeometry(object):
 
     @classmethod
     def fromstring(cls, input):
-        if set(input) <= HEX:
+        if is_hex(input):
             # Looks like an ID
             return cls.get(input)
         geom = geos_geom_from_string(input)
-        id = hashlib.md5(input).hexdigest()
-        return cls(geom, id)
+        return cls(geom, id=None)
