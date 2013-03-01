@@ -145,9 +145,13 @@ class RoadEventListView(ModelListAPIView):
         if request.META['CONTENT_TYPE'] == 'application/json':
             return self.post_to_create(request)
 
-        opts = dict(request.POST)
+        opts = request.POST.copy()
+        if 'geography' in opts and len(opts['geography']) > 1000:
+            sgeom = SearchGeometry.fromstring(opts['geography'])
+            sgeom.save()
+            opts['geography'] = sgeom.id
 
-        return HttpResponseRedirect('?' + urlencode(opts))
+        return HttpResponseRedirect('?' + opts.urlencode())
 
 
     def post_to_create(self, request):
