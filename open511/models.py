@@ -260,6 +260,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     id = models.CharField(max_length=100, blank=True, db_index=True)
     jurisdiction = models.ForeignKey(Jurisdiction)
+    severity = models.SmallIntegerField(blank=True, null=True, db_index=True)
 
     external_url = models.URLField(blank=True, db_index=True)
 
@@ -277,6 +278,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def save(self, force_insert=False, force_update=False, using=None):
         self.xml_data = etree.tostring(self.xml_elem)
         self.full_clean()
+        try:
+            self.severity = int(self.xml_elem.xpath('severity/text()')[0])
+        except (IndexError, ValueError):
+            pass
         super(RoadEvent, self).save(force_insert=force_insert, force_update=force_update,
             using=using)
         if not self.id:

@@ -35,7 +35,10 @@ def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text'):
     )
 
 
-def filter_db(fieldname, qs, value):
+def filter_db(fieldname, qs, value, allow_operators=False):
+    if allow_operators:
+        operator, value = _parse_operator_from_value(value)
+        fieldname = fieldname + '__' + operator
     return qs.filter(**{fieldname: value})
 
 
@@ -86,8 +89,8 @@ class RoadEventListView(ModelListAPIView):
         'created': partial(filter_datetime, 'created'),
         'updated': partial(filter_datetime, 'updated'),
         'bbox': filter_bbox,
-        # FIXME jurisdiction
-        # FIXME severity
+        'jurisdiction': partial(filter_db, 'jurisdiction__slug'),  # FIXME filter syntax
+        'severity': partial(filter_db, 'severity', allow_operators=True),
         'event_subtype': partial(filter_xpath, 'event_subtype/text()'),
         'traveler_message': partial(filter_xpath, 'traveler_message/text()'),
         'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
