@@ -98,6 +98,10 @@ class APIView(View):
 
         resp['Open511-Media-Type'] = 'application/vnd.open511.%s+%s' % (request.response_version, request.response_format)
 
+        if 'HTTP_ORIGIN' in request.META and request.method == 'GET':
+            # Allow cross-domain requests
+            resp['Access-Control-Allow-Origin'] = '*'
+
         return resp
 
     def render_xml(self, request, result):
