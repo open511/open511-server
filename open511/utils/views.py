@@ -181,9 +181,12 @@ class APIView(View):
         return render(request, "open511/api/base.html", ctx)
 
     def get_response_metadata(self, request):
+        url = request.path
+        if request.META.get('QUERY_STRING'):
+            url += '?' + request.META['QUERY_STRING']
         m = {
             'version': request.response_version,
-            'url': request.path, # FIXME query
+            'url': url,
         }
         if self.include_up_link:
             m['up_url'] = urlparse.urljoin(request.path, '../')
