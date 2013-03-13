@@ -96,7 +96,7 @@ class APIView(View):
         if request.html_response:
             resp = self.render_api_browser(request, resp.content)
 
-        resp['X-Open511-Media-Type'] = 'application/vnd.open511.%s+%s' % (request.response_version, request.response_format)
+        resp['Open511-Media-Type'] = 'application/vnd.open511.%s+%s' % (request.response_version, request.response_format)
 
         return resp
 
