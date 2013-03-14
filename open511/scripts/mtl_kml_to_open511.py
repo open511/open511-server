@@ -41,9 +41,9 @@ def feature_to_open511_element(feature):
             e.text = unicode(val)
             elem.append(e)
 
-    set_val('status', 'active')
-    set_val('event_type', 'Roadwork')
-    set_val('severity', '1')
+    set_val('status', 'ACTIVE')
+    set_val('event_type', 'CONSTRUCTION')
+    set_val('severity', '9')
 
     set_val('headline', feature.get('Name').decode('utf8'))
 

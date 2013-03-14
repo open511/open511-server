@@ -22,7 +22,7 @@ def filter_status(qs, value):
         return qs.filter(active=True)
     elif value.lower() == 'archived':
         return qs.filter(active=False)
-    elif value == '*':
+    elif value.lower() in ('*', 'all'):
         return qs
     else:
         return qs.none()

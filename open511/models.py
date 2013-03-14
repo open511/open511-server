@@ -379,7 +379,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         if key in ('updated', 'created'):
             raise NotImplementedError
         elif key == 'status':
-            self.active = (val == 'active')
+            self.active = (val.upper() == 'ACTIVE')
             return
 
         update_el = self._get_or_create_el(key)
