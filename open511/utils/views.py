@@ -126,15 +126,17 @@ class APIView(View):
 
     def render_json(self, request, result):
         resp = HttpResponse(content_type='application/json')
-        resp_content = {
-            'meta': self.get_response_metadata(request)
-        }
         if hasattr(result, 'resource'):
-            resp_content['content'] = xml_to_json(result.resource)
+            resp_content = xml_to_json(result.resource)
         elif hasattr(result, 'resource_list'):
-            resp_content['content'] = [xml_to_json(r) for r in result.resource_list]
+            resp_content = {
+                'content': [xml_to_json(r) for r in result.resource_list]
+            }
             if getattr(result, 'pagination', None):
                 resp_content['pagination'] = result.pagination
+        resp_content.setdefault('meta', {}).update(self.get_response_metadata(request))
+        if 'url' in resp_content['meta']:
+            del resp_content['meta']['url']
         callback = ''
         if self.allow_jsonp and 'callback' in request.GET:
             callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])
