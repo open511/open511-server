@@ -6,6 +6,7 @@ from lxml.builder import E
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
@@ -23,7 +24,7 @@ NSMAP = {
 
 try:
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
-except ImportError:
+except (ImportError, ImproperlyConfigured):
     DEFAULT_LANGUAGE = 'en'
 
 etree.register_namespace('gml', GML_NS)

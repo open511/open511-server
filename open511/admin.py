@@ -45,8 +45,8 @@ class BaseRoadEventForm(forms.BaseModelForm):
         exclude = ['xml_data']
 
 class RoadEventAdmin(admin.ModelAdmin):
-    list_display = ['headline', 'jurisdiction']
-    list_filter = ['jurisdiction']
+    list_display = ['headline', 'jurisdiction', 'severity', 'active']
+    list_filter = ['jurisdiction', 'active', 'severity']
     search_fields = ['xml_data']
 
 

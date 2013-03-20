@@ -4,7 +4,7 @@ import re
 import sys
 import urllib2
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import (ValidationError, ImproperlyConfigured)
 from django.core.management.base import BaseCommand
 
 from lxml import etree
@@ -20,6 +20,8 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('-j', '--jurisdiction', action='store', dest='jurisdiction_slug',
             help='The slug of the jurisdiction to import items into.'),
+        make_option('--archive', action='store_true', dest='archive',
+            help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.')
     )
 
     def handle(self, source, **options):
@@ -37,6 +39,9 @@ class Command(BaseCommand):
             default_jurisdiction = Jurisdiction.objects.get(external_url='')
         else:
             default_jurisdiction = None
+
+        if options['archive'] and not default_jurisdiction:
+            raise ImproperlyConfigured("To use the archive option, you must specify a jurisdiction.")
 
         opts = {
             'default_jurisdiction': default_jurisdiction
@@ -57,5 +62,11 @@ class Command(BaseCommand):
             except (ValueError, ValidationError) as e:
                 logger.error("%s importing %s: %s" % (e.__class__.__name__, event.get('id'), e))
 
-        print "%s entries imported." % len(created)
+        msg = "%s entries imported." % len(created)
 
+        if options['archive']:
+            updated = RoadEvent.objects.filter(jurisdiction=default_jurisdiction).exclude(
+                id__in=[rdev.id for rdev in created]).update(active=False)
+            msg += " %s events archived." % updated
+
+        print msg

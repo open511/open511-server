@@ -41,13 +41,18 @@ def feature_to_open511_element(feature):
             e.text = unicode(val)
             elem.append(e)
 
+    def maybe_decode(s):
+        if isinstance(s, unicode):
+            return s
+        return s.decode('utf8')
+
     set_val('status', 'ACTIVE')
     set_val('event_type', 'CONSTRUCTION')
     set_val('severity', '9')
 
-    set_val('headline', feature.get('Name').decode('utf8'))
+    set_val('headline', maybe_decode(feature.get('Name')))
 
-    blob = lxml.html.fragment_fromstring(feature.get('Description').decode('utf8'),
+    blob = lxml.html.fragment_fromstring(maybe_decode(feature.get('Description')),
         create_parent='content')
 
     description_label = blob.xpath('//strong[text()="Description"]')
@@ -71,7 +76,7 @@ def feature_to_open511_element(feature):
         e = etree.Element(ATOM_LINK)
         e.set('rel', 'related')
         e.set('href', url)
-        elem.append(e)
+        elem.append(E.attachments(e))
     except IndexError:
         pass
 

@@ -1,10 +1,11 @@
 from webob.acceptparse import AcceptLanguage, MIMEAccept
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 try:
     DEFAULT_ACCEPT_LANGUAGE = AcceptLanguage(settings.LANGUAGE_CODE + ', *;q=0.1')
-except ImportError:
+except (ImportError, ImproperlyConfigured):
     DEFAULT_ACCEPT_LANGUAGE = None
 DEFAULT_ACCEPT = MIMEAccept('application/xml')
 
