@@ -24,6 +24,13 @@ def _time_el_to_period(t):
         text_to_time(t.findtext('end'))
     )
 
+def _time_text_to_period(t):
+    (start, _, end) = t.partition('-')
+    return Period(
+        text_to_time(start),
+        text_to_time(end)
+    )
+
 # FIXME write tests!
 
 class Schedule(object):
@@ -50,10 +57,11 @@ class Schedule(object):
         to the base recurrence pattern."""
         ex = {}
         for sd in self.root.xpath('specific_dates/specific_date'):
-            d = text_to_date(sd.findtext('date'))
-            ex.setdefault(d, []).extend([
-                _time_el_to_period(t)
-                for t in sd.xpath('times/time')
+            bits = sd.split(' ')
+            date = text_to_date(bits.pop(0))
+            ex.setdefault(date, []).extend([
+                _time_text_to_period(t)
+                for t in bits
             ])
         return ex
 
