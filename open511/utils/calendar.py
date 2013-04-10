@@ -210,11 +210,4 @@ class Schedule(object):
         wd = self.root.findtext('days_of_week')
         if not wd:
             return set(range(7))
-        days = set()
-        for day in wd.split(','):
-            try:
-                days.add(self.WEEKDAYS[day])
-            except KeyError:
-                pass
-        return days
-
+        return set(int(d) - 1 for d in wd.split(','))
