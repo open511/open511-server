@@ -51,10 +51,7 @@ def filter_datetime(fieldname, qs, value):
 
 
 def filter_bbox(qs, value, fieldname='geom'):
-    try:
-        coords = [float(n) for n in value.split(',')]
-    except ValueError:
-        raise # FIXME
+    coords = [float(n) for n in value.split(',')]
     assert len(coords) == 4
     return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
 
@@ -63,6 +60,14 @@ def filter_geography(qs, value, within=None):
     if within is not None:
         return qs.filter(geom__dwithin=(search_geom.geom, Distance(m=within)))
     return qs.filter(geom__intersects=search_geom.geom)
+
+def filter_jurisdiction(qs, value):
+    # The jurisdiction parameter can be:
+    # - A full http:// URL to the external jurisdiction
+    # - Some kind relative URL: /api/jurisdictions/mtq
+    # - Just the slug: mtq
+    return qs.filter(Q(jurisdiction__external_url=value) | 
+        Q(jurisdiction__slug=value.rstrip('/').split('/')[-1]))
 
 FILTER_OPERATORS = [
     ('<=', 'lte'),
@@ -89,7 +94,7 @@ class RoadEventListView(ModelListAPIView):
         'created': partial(filter_datetime, 'created'),
         'updated': partial(filter_datetime, 'updated'),
         'bbox': filter_bbox,
-        'jurisdiction': partial(filter_db, 'jurisdiction__slug'),  # FIXME filter syntax
+        'jurisdiction': filter_jurisdiction,
         'severity': partial(filter_db, 'severity', allow_operators=True),
         'event_subtype': partial(filter_xpath, 'event_subtype/text()'),
         'traveler_message': partial(filter_xpath, 'traveler_message/text()'),

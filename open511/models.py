@@ -389,7 +389,6 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         elif isinstance(val, basestring):
             update_el.text = val
         elif key == 'geography':
-            # FIXME update actual geometry column
             if 'opengis' in getattr(val, 'tag', ''):
                 wkt = gml_to_ewkt(etree.tostring(val))
             else:
