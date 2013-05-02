@@ -195,7 +195,10 @@ class APIView(View):
             'url': url,
         }
         if self.include_up_link:
-            m['up_url'] = urlparse.urljoin(request.path, '../')
+            if getattr(self, 'up_url', None):
+                m['up_url'] = urlparse.urljoin(request.path, self.up_url)
+            else:
+                m['up_url'] = urlparse.urljoin(request.path, '../')
         return m
 
 

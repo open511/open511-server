@@ -19,6 +19,8 @@ class JurisdictionView(APIView):
 
     model = Jurisdiction
 
+    up_url = '../../'
+
     def get(self, request, slug):
         jur = get_object_or_404(Jurisdiction, slug=slug)
         return Resource(jur.to_full_xml_element(accept_language=request.accept_language))

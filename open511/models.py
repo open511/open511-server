@@ -148,6 +148,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         link.set('rel', 'self')
         link.set('href', self.full_url)
         el.insert(0, link)
+        el.insert(0, E.id(self.slug))
 
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))
