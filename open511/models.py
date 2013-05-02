@@ -117,7 +117,7 @@ class JurisdictionManager(models.GeoManager):
 
 class Jurisdiction(_Open511Model, XMLModelMixin):
 
-    slug = models.SlugField()
+    slug = models.CharField(max_length=200, unique=True, db_index=True)
 
     external_url = models.URLField(blank=True)
 
