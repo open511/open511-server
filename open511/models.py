@@ -382,6 +382,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         elif key == 'status':
             self.active = (val.upper() == 'ACTIVE')
             return
+        elif key.startswith('_'):
+            return
 
         update_el = self._get_or_create_el(key)
 
