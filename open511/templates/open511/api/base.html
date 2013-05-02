@@ -1,23 +1,10 @@
+{% extends "open511/base.html" %}
 {% load open511 %}
-<!DOCTYPE html>
-<html>
-<head>
-	<title>Open511 API</title>
-	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}open511/vendor/bootstrap.css">
-	{# <link href='http://fonts.googleapis.com/css?family=Ubuntu+Condensed' rel='stylesheet' type='text/css'> #}
-	<style type="text/css">
-		#header {
-			height: 50px;
-			padding: 1px 10px;
-			background-color: #AFF59F;
-			border-bottom: 2px solid #5bb053;
-		}
-		#header #logo {
-			padding: 6px 20px 0 8px;
-		}
-		p {
-			font-size: 110%;
-		}
+
+{% block pagetitle %}Open511 API{% endblock %}
+{% block headertitle %}API Browser{% endblock %}
+{% block css %}
+{{ block.super }}
 /*		#code_body {
 			margin-left: auto;
 			margin-right: auto;
@@ -34,12 +21,6 @@
 			margin-left: auto;
 			margin-right: auto;
 			overflow: auto;
-		}
-		#content {
-			max-width: 960px;
-			margin-left: auto;
-			margin-right: auto;
-			margin-top: 20px;
 		}
 
 		#filters .add-row {
@@ -66,9 +47,7 @@
 		#filters td {
 			text-align: right;
 		}
-	</style>
 
-	<style type="text/css">
 pre code {
 	padding: 1em;
 	background: #002b36; color: #93a1a1;
@@ -144,11 +123,10 @@ pre .cdata,
 pre .clojure .title {
   color: #cb4b16;
 }
-	</style>
-</head>
-<body>
-	<div id="header"><h1><a href="/"><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"></a> <small>API Browser</small></h1></div>
-	<div id="content">
+{% endblock css %}
+
+
+{% block content %}
 		{% if resource_name %}
 			<p>This is a 
 			{% if is_list %}list of <strong>{{ resource_name_plural }}</strong>{% else %}<strong>{{ resource_name }}</strong> resource{% endif %}. <a href="http://opennorth.github.com/Open511API/">Read the API documentation.</a> </p> 
@@ -169,7 +147,9 @@ pre .clojure .title {
 			<li{% if response_format == "json" %} class="active"{% endif %}><a href="" data-tab="json">JSON</a></li></ul>
 		<pre><code class="{{ response_format }}">{{ response_content }}</code></pre>
 		</div>
-	</div>
+{% endblock content %}
+
+{% block js %}
 <script src="{{ STATIC_URL }}open511/vendor/highlight.min.js"></script>
 <script src="{{ STATIC_URL }}open511/vendor/jquery.min.js"></script>
 <script src="{{ STATIC_URL }}open511/vendor/underscore.min.js"></script>
@@ -250,5 +230,4 @@ $(function() {
 	initFilters({{ get_params|json }}{% if available_filters %}, {{ available_filters|json }}{% endif %});
 });
 </script>
-</body>
-</html>
+{% endblock js %}
