@@ -276,6 +276,11 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             ('id', 'jurisdiction')
         ]
 
+    def __init__(self, *args, **kwargs):
+        lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
+        super(RoadEvent, self).__init__(*args, **kwargs)
+        self.xml_elem.set(XML_LANG, lang)
+
     def save(self, force_insert=False, force_update=False, using=None):
         self.xml_data = etree.tostring(self.xml_elem)
         self.full_clean()
