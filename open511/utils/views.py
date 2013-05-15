@@ -135,8 +135,8 @@ class APIView(View):
             if getattr(result, 'pagination', None):
                 resp_content['pagination'] = result.pagination
         resp_content.setdefault('meta', {}).update(self.get_response_metadata(request))
-        if 'url' in resp_content['meta']:
-            del resp_content['meta']['url']
+        #if 'url' in resp_content['meta']:
+        #    del resp_content['meta']['url']
         callback = ''
         if self.allow_jsonp and 'callback' in request.GET:
             callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])

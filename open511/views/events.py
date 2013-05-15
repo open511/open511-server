@@ -97,16 +97,12 @@ class RoadEventListView(ModelListAPIView):
         'jurisdiction': filter_jurisdiction,
         'severity': partial(filter_db, 'severity', allow_operators=True),
         'event_subtype': partial(filter_xpath, 'event_subtype/text()'),
-        'traveler_message': partial(filter_xpath, 'traveler_message/text()'),
         'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
-        'city': partial(filter_xpath, 'roads/road/city/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
         'geography': None,  # dealt with in post_filter
         'tolerance': None,  # dealth with in post_filter
         'in_effect_on': None,  # dealt with in post_filter
-        # FIXME groupedEvent
-        # FIXME schedule
     }
 
     unauthenticated_methods = ModelListAPIView.unauthenticated_methods + (
