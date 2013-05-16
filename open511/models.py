@@ -279,7 +279,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def __init__(self, *args, **kwargs):
         lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
         super(RoadEvent, self).__init__(*args, **kwargs)
-        self.xml_elem.set(XML_LANG, lang)
+        if not self.internal_id and not self.xml_elem.get(XML_LANG):
+            self.xml_elem.set(XML_LANG, lang)
 
     def save(self, force_insert=False, force_update=False, using=None):
         self.xml_data = etree.tostring(self.xml_elem)
@@ -404,7 +405,9 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             self.geom = geos_geom_from_string(wkt)
             update_el.clear()
             update_el.append(geom_to_xml_element(self.geom))
-        elif isinstance(val, dict):
+        elif isinstance(val, (dict, list)):
+            if not val:
+                update_el.getparent().remove(update_el)
             update_el.clear()
             json_to_xml(val, update_el)
         else:
@@ -421,6 +424,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             raise ValidationError("Schedule is required")
         return Schedule(sched,
             default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
+
 
 class SearchGeometry(object):
     """A saved geometry object, to be used in searches."""

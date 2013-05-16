@@ -47,6 +47,10 @@ ELEMENTS = [
     DataField('severity', 'CHAR', _('Severity')),
     DataField('traffic_restrictions', 'TEXT', _('Traffic Restrictions')),
     DataField('detour', 'TEXT', _('Detour')),
+    DataField('road_name', 'TEXT', _('Road name')),
+    DataField('to', 'TEXT', _('To')),
+    DataField('from', 'TEXT', _('From')),
+    DataField('name', 'TEXT', _('Name')),
 ]
 
 ELEMENTS_LOOKUP = dict((f.tag, f) for f in ELEMENTS)
@@ -102,18 +106,30 @@ def xml_to_json(root):
 
     return j
 
+
 def json_to_xml(json_obj, root):
     if isinstance(root, basestring):
-        root = etree.Element(root_name)
-    for key, val in json_obj.items():
-        if isinstance(val, dict):
-            root.append(json_to_xml(val, key))
-        elif val is not None:
-            el = etree.Element(key)
-            el.text = val
-            root.append(el)
+        root = etree.Element(root)
+    if isinstance(json_obj, basestring):
+        root.text = json_obj
+    elif isinstance(json_obj, dict):
+        for key, val in json_obj.items():
+            el = json_to_xml(val, key)
+            if el is not None:
+                root.append(el)
+    elif isinstance(json_obj, list):
+        tag_name = root.tag
+        if tag_name.endswith('s'):
+            tag_name = tag_name[:-1]
+        for val in json_obj:
+            el = json_to_xml(val, tag_name)
+            if el is not None:
+                root.append(el)
+    elif json_obj is None:
+        return None
+    else:
+        raise NotImplementedError
     return root
-
 
 
 class XMLModelMixin(object):
