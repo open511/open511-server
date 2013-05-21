@@ -7,7 +7,7 @@ from django.contrib.gis.geos import Polygon
 from django.contrib.gis.measure import Distance
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
@@ -199,6 +199,16 @@ class RoadEventView(APIView):
         rdev.save()
 
         return self.get(request, jurisdiction_slug, id)
+
+    def delete(self, request, jurisdiction_slug, id):
+        rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
+
+        if not rdev.jurisdiction.can_edit(request.user):
+            raise PermissionDenied
+
+        rdev.delete()
+
+        return HttpResponse(status=204)
 
     def get(self, request, jurisdiction_slug, id):
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
