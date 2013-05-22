@@ -28,7 +28,7 @@ from open511.utils.geojson import geojson_to_ewkt
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
     geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin, NSMAP,
-    json_to_xml)
+    json_to_xml, make_link)
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
 
@@ -424,6 +424,33 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             raise ValidationError("Schedule is required")
         return Schedule(sched,
             default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
+
+
+class Area(_Open511Model, XMLModelMixin):
+
+    geonames_id = models.IntegerField(primary_key=True)
+
+    xml_data = XMLField(default='<area xmlns:atom="http://www.w3.org/2005/Atom" />')
+
+    geom = models.GeometryField(blank=True, null=True)
+
+    auto_label = models.BooleanField(default=False, db_index=True,
+        help_text="Automatically include this Area in new events within its boundaries.")
+
+    @property
+    def name(self):
+        return self.get_text_value('name')
+
+    def __unicode__(self):
+        return u"%s (%s)" % (self.name, self.geonames_id)
+
+    def save(self, *args, **kwargs):
+        if not self.xml_elem.xpath('area_id'):
+            self.xml_elem.insert(0, E.area_id(str(self.geonames_id)))
+            self.xml_elem.append(make_link('self', 'http://geonames.org/%s/about.rdf' % self.geonames_id))
+        self.xml_data = etree.tostring(self.xml_elem)
+        self.full_clean()
+        super(Area, self).save(*args, **kwargs)
 
 
 class SearchGeometry(object):

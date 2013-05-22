@@ -9,6 +9,7 @@ urlpatterns = patterns('open511.views',
         name='open511_roadevent'),
     #url(r'^jurisdictions/$', 'jurisdictions.list_jurisdictions'),
     url(r'^jurisdictions/(?P<slug>[a-z0-9.-]+)/$', 'jurisdictions.jurisdiction', name='open511_jurisdiction'),
+    url(r'^areas/$', 'areas.list_areas'),
     url(r'^$', 'discovery.discovery', name='open511_discovery'),
 )
 
