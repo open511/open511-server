@@ -1,12 +1,13 @@
 import json
 import re
+import time
 import urlparse
 
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.template import loader, RequestContext
 from django.template.defaultfilters import escape
+from django.utils.http import http_date
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
@@ -96,11 +97,16 @@ class APIView(View):
         if request.html_response:
             resp = self.render_api_browser(request, resp.content)
 
+        # Set response headers
+
         resp['Open511-Media-Type'] = 'application/vnd.open511.%s+%s' % (request.response_version, request.response_format)
 
         if 'HTTP_ORIGIN' in request.META and request.method == 'GET':
             # Allow cross-domain requests
             resp['Access-Control-Allow-Origin'] = '*'
+
+        if not resp.has_header('Expires'):
+            resp['Expires'] = http_date(time.time())
 
         return resp
 
