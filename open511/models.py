@@ -146,14 +146,16 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
     def to_full_xml_element(self, accept_language=None):
         el = deepcopy(self.xml_elem)
 
-        link = etree.Element(ATOM_LINK)
-        link.set('rel', 'self')
-        link.set('href', self.full_url)
-        el.insert(0, link)
+        el.insert(0, make_link('self', self.full_url))
         el.insert(0, E.id(self.slug))
 
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))
+
+        if (
+                not el.xpath('atom:link[@rel="geography"]', namespaces=NSMAP)
+                and JurisdictionGeography.objects.filter(jurisdiction=self).exists()):
+            el.append(make_link('geography', self.get_absolute_url() + 'geography/'))
 
         self.remove_unnecessary_languages(accept_language, el)
 
@@ -170,6 +172,27 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
     def can_edit(self, user):
         return self.permitted_users.filter(id=user.id).exists()
+
+
+class JurisdictionGeography(models.Model):
+
+    jurisdiction = models.OneToOneField(Jurisdiction)
+
+    geom = models.GeometryField()
+
+    objects = models.GeoManager()
+
+    class Meta:
+        verbose_name_plural = 'Jurisdiction geographies'
+
+    def __unicode__(self):
+        return u"Geography for %s" % self.jurisdiction
+
+    def get_absolute_url(self):
+        return self.jurisdiction.get_absolute_url() + 'geography/'
+
+    def to_full_xml_element(self):
+        return E.geography(geom_to_xml_element(self.geom))
 
 
 class RoadEventManager(models.GeoManager):
