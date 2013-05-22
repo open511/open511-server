@@ -26,10 +26,10 @@ from open511.utils.cache import memoize_method
 from open511.utils.calendar import Schedule
 from open511.utils.geojson import geojson_to_ewkt
 from open511.utils.postgis import gml_to_ewkt
-from open511.utils.serialization import (ELEMENTS, ELEMENTS_LOOKUP,
+from open511.utils.serialization import (
     geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin, NSMAP,
-    json_to_xml, make_link)
-from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
+    json_to_xml, make_link
+)
 
 
 class _Open511Model(models.Model):
@@ -129,6 +129,8 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
     objects = JurisdictionManager()
 
+    FREE_TEXT_TAGS = ['name', 'description']
+
     def __unicode__(self):
         return self.slug
 
@@ -152,6 +154,8 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))
+
+        self.remove_unnecessary_languages(accept_language, el)
 
         return el
 
@@ -271,6 +275,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     objects = RoadEventManager()
 
+    FREE_TEXT_TAGS = [
+        'headline', 'description', 'detour', 'road_name', 'from', 'to', 'area_name'
+    ]
+
     class Meta(object):
         unique_together = [
             ('id', 'jurisdiction')
@@ -309,39 +317,6 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             'id': self.id}
         )
 
-    def determine_best_language(self, accept=DEFAULT_ACCEPT_LANGUAGE):
-        """Given Accept-Language options, determine what the best language is
-        to return this event in.
-
-        accept - a webob AcceptLanguage object"""
-        headlines = self._get_text_elems('headline', self.xml_elem)
-        if not headlines:
-            raise ValidationError("Headline is required")
-        best_match = accept.best_match(headlines.keys(), default_match=None)
-        if best_match:
-            return best_match
-        if settings.LANGUAGE_CODE in headlines:
-            # If we don't have a good Accept-Language match,
-            # try and return the default language.
-            return settings.LANGUAGE_CODE
-        # Failing everything else, return what we have.
-        return headlines.keys()[0]
-
-    def prune_languages(self, parent, lang):
-        """Remove all free-text elements that don't match the provided language."""
-
-        rejects = set()
-        for child in parent:
-            if len(child):
-                self.prune_languages(child, lang)
-            elif (child not in rejects
-                    and child.tag in ELEMENTS_LOOKUP
-                    and ELEMENTS_LOOKUP[child.tag].type == 'TEXT'):
-                options = self._get_text_elems(child.tag, root=parent)
-                rejects |= set(o for l, o in options.items() if l != lang)
-        for reject in rejects:
-            parent.remove(reject)
-
     def to_full_xml_element(self, accept_language=None):
         el = deepcopy(self.xml_elem)
 
@@ -360,9 +335,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))
 
-        if accept_language:
-            best_language = self.determine_best_language(accept_language)
-            self.prune_languages(el, best_language)
+        self.remove_unnecessary_languages(accept_language, el)
 
         return el
 
@@ -436,6 +409,8 @@ class Area(_Open511Model, XMLModelMixin):
 
     auto_label = models.BooleanField(default=False, db_index=True,
         help_text="Automatically include this Area in new events within its boundaries.")
+
+    FREE_TEXT_TAGS = ['area_name']
 
     @property
     def name(self):

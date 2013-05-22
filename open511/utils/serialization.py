@@ -1,5 +1,5 @@
 from collections import namedtuple
-import json
+from copy import deepcopy
 
 from lxml import etree
 from lxml.builder import E
@@ -132,7 +132,16 @@ def json_to_xml(json_obj, root):
     return root
 
 
+class CannotChooseLanguageError(Exception):
+    pass
+
+
 class XMLModelMixin(object):
+
+    # This must be a list of tag names that contain potentially multilingual content.
+    # The order is important: the *first* tag should be a required element, and is
+    # used to determine which languages a given piece of data contains.
+    FREE_TEXT_TAGS = []
 
     def _get_elem(self):
         if getattr(self, '_xml_elem', None) is None:
@@ -202,4 +211,47 @@ class XMLModelMixin(object):
             self.xml_elem.remove(el)
         else:
             el.text = unicode(value)
+
+    def _determine_best_language(self, accept=DEFAULT_ACCEPT_LANGUAGE):
+        """Given Accept-Language options, determine what the best language is
+        to return this event in.
+
+        accept - a webob AcceptLanguage object"""
+        if not self.FREE_TEXT_TAGS:
+            raise CannotChooseLanguageError("No list of free-text tags")
+        test_tag = self.FREE_TEXT_TAGS[0]
+        languages = self._get_text_elems(test_tag, self.xml_elem).keys()
+        if not languages:
+            raise CannotChooseLanguageError("%s is required" % test_tag)
+        best_match = accept.best_match(languages, default_match=None)
+        if best_match:
+            return best_match
+        if settings.LANGUAGE_CODE in languages:
+            # If we don't have a good Accept-Language match,
+            # try and return the default language.
+            return settings.LANGUAGE_CODE
+        # Failing everything else, return what we have.
+        return languages[0]
+
+    def _prune_languages(self, parent, lang):
+        """Remove all free-text elements that don't match the provided language."""
+        rejects = set()
+        for child in parent:
+            if len(child):
+                self._prune_languages(child, lang)
+            elif (child not in rejects and child.tag in self.FREE_TEXT_TAGS):
+                options = self._get_text_elems(child.tag, root=parent)
+                rejects |= set(o for l, o in options.items() if l != lang)
+        for reject in rejects:
+            parent.remove(reject)
+
+    def remove_unnecessary_languages(self, accept_language, elem=None):
+        if not accept_language:
+            return elem if elem else self.xml_elem
+        if elem is None:
+            elem = deepcopy(self.xml_elem)
+        lang = self._determine_best_language(accept_language)
+        self._prune_languages(elem, lang)
+        return elem
+
 

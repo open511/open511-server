@@ -12,7 +12,7 @@ DEFAULT_ACCEPT = MIMEAccept('application/xml')
 
 def accept_language_from_request(request, default=DEFAULT_ACCEPT_LANGUAGE):
     if 'accept-language' in request.GET:
-        return AcceptLanguage(request.GET['accept-language'])
+        return AcceptLanguage(request.GET['accept-language']) if request.GET['accept-language'] else default
 
     if 'HTTP_ACCEPT_LANGUAGE' in request.META:
         return AcceptLanguage(request.META['HTTP_ACCEPT_LANGUAGE'])
