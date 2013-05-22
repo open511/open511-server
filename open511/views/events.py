@@ -100,6 +100,7 @@ class RoadEventListView(ModelListAPIView):
         'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
+        'area_id': partial(filter_xpath, 'areas/area/area_id/text()'),
         'geography': None,  # dealt with in post_filter
         'tolerance': None,  # dealth with in post_filter
         'in_effect_on': None,  # dealt with in post_filter
@@ -175,6 +176,8 @@ class RoadEventListView(ModelListAPIView):
         rdev = RoadEvent(jurisdiction=jurisdiction)
         for key, val in content.items():
             rdev.update(key, val)
+
+        rdev.auto_label_areas()
         rdev.save()
 
         return HttpResponseRedirect(rdev.get_absolute_url())

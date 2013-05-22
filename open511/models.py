@@ -398,6 +398,19 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         return Schedule(sched,
             default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
 
+    def auto_label_areas(self):
+        """Based on geometry, include any matching Areas we know about."""
+        areas = Area.objects.filter(auto_label=True, geom__intersects=self.geom)
+        for area in areas:
+            if self.xml_elem.xpath('areas/area/area_id[text()="%s"]' % area.geonames_id):
+                continue
+            try:
+                areas_el = self.xml_elem.xpath('areas')[0]
+            except IndexError:
+                areas_el = E.areas()
+                self.xml_elem.append(areas_el)
+            areas_el.append(area.xml_elem)
+
 
 class Area(_Open511Model, XMLModelMixin):
 
@@ -409,6 +422,8 @@ class Area(_Open511Model, XMLModelMixin):
 
     auto_label = models.BooleanField(default=False, db_index=True,
         help_text="Automatically include this Area in new events within its boundaries.")
+
+    objects = models.GeoManager()
 
     FREE_TEXT_TAGS = ['area_name']
 
