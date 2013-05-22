@@ -9,9 +9,13 @@ from open511.utils.views import APIView, Resource
 # This should eventually be turned into an autodiscovery of some kind
 SERVICES = [
     {
-        'type': 'events',
+        'type': 'EVENTS',
         'description': 'Provide information about events impacting the road system',
         'url_name': 'open511_roadevent_list'
+    },
+    {
+        'type': 'AREAS',
+        'url_name': 'open511_area_list'
     }
 ]
 
@@ -31,7 +35,7 @@ class DiscoveryView(APIView):
         services = E.services(*[
             E.service(
                 E.service_type(s['type']),
-                E.service_description(s['description']),
+                #E.service_description(s['description']),
                 make_link('self', urlresolvers.reverse(s['url_name']))
             ) for s in SERVICES
         ])
