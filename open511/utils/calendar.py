@@ -35,16 +35,6 @@ def _time_text_to_period(t):
 
 class Schedule(object):
 
-    WEEKDAYS = {
-        'MO': 0,
-        'TU': 1,
-        'WE': 2,
-        'TH': 3,
-        'FR': 4,
-        'SA': 5,
-        'SU': 6
-    }
-
     def __init__(self, root, default_timezone=None):
         assert root.tag == 'schedule'
         self.root = root
@@ -210,4 +200,4 @@ class Schedule(object):
         wd = self.root.findtext('days_of_week')
         if not wd:
             return set(range(7))
-        return set(int(d) - 1 for d in wd.split(','))
+        return set(int(d) - 1 for d in wd.split(' '))
