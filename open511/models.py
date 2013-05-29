@@ -63,39 +63,35 @@ class JurisdictionManager(models.GeoManager):
         try:
             return self.get(external_url=url)
         except ObjectDoesNotExist:
-            if url.startswith(settings.OPEN511_BASE_URL):
-                slug = filter(None, url.split('/'))[-1]
-                try:
-                    return self.get(slug=slug)
-                except ObjectDoesNotExist:
-                    pass
+            slug = filter(None, url.split('/'))[-1]
+            try:
+                return self.get(slug=slug)
+            except ObjectDoesNotExist:
+                pass
 
-        # Looks like we need to create a new jurisdiction
+        # Looks like we need to fetch the jurisdiction
         req = requests.get(url, headers={'Accept': 'application/xml'})
         root = etree.fromstring(req.content)
         jur = root.xpath('jurisdiction')[0]
-        self_url = jur.xpath('atom:link[@rel="self"]/@href', namespaces=NSMAP)[0]
-        if self_url != url:
-            return self.get_or_create_from_url(self_url)
-
-        return self.update_or_create_from_xml(jur)
+        jur_id = jur.xpath('id/text()')[0]
+        
+        try:
+            return self.get(slug=jur_id)
+        except ObjectDoesNotExist:
+            return self.update_or_create_from_xml(jur)
 
     def update_or_create_from_xml(self, xml_jurisdiction):
         xml_jurisdiction = deepcopy(xml_jurisdiction)
+        jur_id = xml_jurisdiction.xpath('id/text()')
         self_link = xml_jurisdiction.xpath('atom:link[@rel="self"]',
             namespaces=NSMAP)[0]
         try:
-            jur = self.get(external_url=self_link.get('href'))
+            jur = self.get(slug=jur_id)
         except ObjectDoesNotExist:
-            slug = filter(None, self_link.get('href').split('/'))[-1]
-            if self.filter(slug=slug).exists():
-                raise Exception(u"There's already a jurisdiction with slug %s, but with URL %s instead of %s."
-                    % (slug, self.get(slug=slug).full_url, self_link.get('href')))
             jur = self.model(
                 external_url=self_link.get('href'),
-                slug=slug
+                slug=jur_id
             )
-
             try:
                 created = xml_jurisdiction.xpath('created/text()')[0]
                 jur.created = dateutil.parser.parse(created)
