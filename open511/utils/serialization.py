@@ -252,7 +252,7 @@ class XMLModelMixin(object):
 
     def remove_unnecessary_languages(self, accept_language, elem=None):
         if not accept_language:
-            return elem if elem else self.xml_elem
+            return elem if elem is not None else self.xml_elem
         if elem is None:
             elem = deepcopy(self.xml_elem)
         lang = self._determine_best_language(accept_language)

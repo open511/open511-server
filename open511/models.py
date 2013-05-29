@@ -82,7 +82,7 @@ class JurisdictionManager(models.GeoManager):
 
     def update_or_create_from_xml(self, xml_jurisdiction):
         xml_jurisdiction = deepcopy(xml_jurisdiction)
-        jur_id = xml_jurisdiction.xpath('id/text()')
+        jur_id = xml_jurisdiction.xpath('id/text()')[0]
         self_link = xml_jurisdiction.xpath('atom:link[@rel="self"]',
             namespaces=NSMAP)[0]
         try:
