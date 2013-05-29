@@ -78,13 +78,15 @@ class JurisdictionManager(models.GeoManager):
         try:
             return self.get(slug=jur_id)
         except ObjectDoesNotExist:
-            return self.update_or_create_from_xml(jur)
+            return self.update_or_create_from_xml(jur, base_url=url)
 
-    def update_or_create_from_xml(self, xml_jurisdiction):
+    def update_or_create_from_xml(self, xml_jurisdiction, base_url=None):
         xml_jurisdiction = deepcopy(xml_jurisdiction)
         jur_id = xml_jurisdiction.xpath('id/text()')[0]
         self_link = xml_jurisdiction.xpath('atom:link[@rel="self"]',
             namespaces=NSMAP)[0]
+        if not base_url:
+            base_url = self_link.get('href')
         try:
             jur = self.get(slug=jur_id)
         except ObjectDoesNotExist:
@@ -101,6 +103,10 @@ class JurisdictionManager(models.GeoManager):
         for path in ['status', 'created', 'updated', 'atom:link[@rel="self"]']:
             for elem in xml_jurisdiction.xpath(path, namespaces=NSMAP):
                 xml_jurisdiction.remove(elem)
+        for link in xml_jurisdiction.xpath('atom:link', namespaces=NSMAP):
+            if not link.get('href').startswith('http'):
+                # If the link isn't absolute, make it so
+                link.set('href', urljoin(base_url, link.get('href')))
         jur.xml_elem = xml_jurisdiction
         jur.save()
         return jur
