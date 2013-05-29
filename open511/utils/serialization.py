@@ -262,8 +262,8 @@ class XMLModelMixin(object):
     def validate_xml(self):
         # First, create a full XML doc to validate
         doc = get_base_open511_element()
-        if hasattr(self, 'to_full_xml_element'):
-            doc.append(self.to_full_xml_element())
+        if hasattr(self, 'get_validation_xml'):
+            doc.append(self.get_validation_xml())
         else:
             doc.append(self.xml_elem)
         doc.extend([

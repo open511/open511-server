@@ -331,20 +331,20 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             'id': self.id}
         )
 
-    def to_full_xml_element(self, accept_language=None):
+    def get_validation_xml(self):
+        return self.to_full_xml_element(fake_links=True)
+
+    def to_full_xml_element(self, accept_language=None, fake_links=False):
         el = deepcopy(self.xml_elem)
 
         el.insert(0, E.status('ACTIVE' if self.active else 'ARCHIVED'))
 
-        link = etree.Element(ATOM_LINK)
-        link.set('rel', 'jurisdiction')
-        link.set('href', self.jurisdiction.full_url)
-        el.insert(0, link)
-
-        link = etree.Element(ATOM_LINK)
-        link.set('rel', 'self')
-        link.set('href', self.url)
-        el.insert(0, link)
+        if fake_links:
+            el.insert(0, make_link('jurisdiction', '/xxx'))
+            el.insert(0, make_link('self', '/xxx/yyy'))
+        else:
+            el.insert(0, make_link('jurisdiction', self.jurisdiction.full_url))
+            el.insert(0, make_link('self', self.url))
 
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))
