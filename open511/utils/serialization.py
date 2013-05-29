@@ -1,12 +1,13 @@
 from collections import namedtuple
 from copy import deepcopy
+import os
 
-from lxml import etree
+from lxml import etree, isoschematron
 from lxml.builder import E
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.translation import ugettext_lazy as _
 
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
@@ -26,6 +27,10 @@ try:
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
 except (ImportError, ImproperlyConfigured):
     DEFAULT_LANGUAGE = 'en'
+
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+RELAXNG_SCHEMA = etree.RelaxNG(etree.parse(os.path.join(CURRENT_DIR, 'open511.rng')))
+SCHEMATRON_DOC = isoschematron.Schematron(etree.parse(os.path.join(CURRENT_DIR, 'open511.sch')))
 
 etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)
@@ -254,4 +259,21 @@ class XMLModelMixin(object):
         self._prune_languages(elem, lang)
         return elem
 
-
+    def validate_xml(self):
+        # First, create a full XML doc to validate
+        doc = get_base_open511_element()
+        if hasattr(self, 'to_full_xml_element'):
+            doc.append(self.to_full_xml_element())
+        else:
+            doc.append(self.xml_elem)
+        doc.extend([
+            make_link('self', '/'),
+            make_link('up', '/')
+        ])
+        doc.set('version', 'v0')
+        # Then run it through schema
+        for schema_name, schema in (('RELAX NG', RELAXNG_SCHEMA), ('Schematron', SCHEMATRON_DOC)):
+            try:
+                schema.assertValid(doc)
+            except etree.DocumentInvalid as e:
+                raise ValidationError(u"%s check failed: %s" % (schema_name, e))

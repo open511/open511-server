@@ -5,7 +5,6 @@ from urlparse import urljoin
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
-from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
 from django.core import urlresolvers
 from django.core.cache import cache
@@ -268,19 +267,6 @@ class RoadEventManager(models.GeoManager):
         return rdev
 
 
-def validate_roadevent_xml(root):
-    if not getattr(root, 'tag', '') == 'event':
-        try:
-            root = etree.fromstring(root)
-        except Exception as e:
-            raise ValidationError(e)
-
-    # For now, just makes sure a bunch of provided xpaths are present
-    for xp in ('headline', 'event_type', 'severity', 'schedule/start_date'):
-        if not root.xpath(xp):
-            raise ValidationError("%s is required" % xp)
-
-
 class RoadEvent(_Open511Model, XMLModelMixin):
 
     internal_id = models.AutoField(primary_key=True)
@@ -293,8 +279,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'), geography=True)
-    xml_data = XMLField(default='<event xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />',
-        validators=[validate_roadevent_xml])
+    xml_data = XMLField(
+        default='<event xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />')
 
     objects = RoadEventManager()
 
@@ -333,6 +319,9 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     def __unicode__(self):
         return u"%s (%s)" % (self.id, self.jurisdiction)
+
+    def clean(self):
+        self.validate_xml()
 
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_roadevent', kwargs={
