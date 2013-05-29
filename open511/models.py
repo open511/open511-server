@@ -100,7 +100,7 @@ class JurisdictionManager(models.GeoManager):
             except IndexError:
                 pass
 
-        for path in ['status', 'created', 'updated', 'atom:link[@rel="self"]']:
+        for path in ['status', 'created', 'updated', 'atom:link[@rel="self"]', 'id']:
             for elem in xml_jurisdiction.xpath(path, namespaces=NSMAP):
                 xml_jurisdiction.remove(elem)
         for link in xml_jurisdiction.xpath('atom:link', namespaces=NSMAP):
