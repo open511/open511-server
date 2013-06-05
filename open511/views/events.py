@@ -96,7 +96,7 @@ class RoadEventListView(ModelListAPIView):
         'bbox': filter_bbox,
         'jurisdiction': filter_jurisdiction,
         'severity': partial(filter_db, 'severity', allow_operators=True),
-        'event_subtype': partial(filter_xpath, 'event_subtype/text()'),
+        'event_subtype': partial(filter_xpath, 'event_subtypes/event_subtype/text()'),
         'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
@@ -190,7 +190,7 @@ class RoadEventView(APIView):
     def patch(self, request, jurisdiction_slug, id):
         # FIXME security, abstraction
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
-        updates = json.loads(request.raw_post_data)
+        updates = json.loads(request.body)
 
         if not rdev.jurisdiction.can_edit(request.user):
             raise PermissionDenied
