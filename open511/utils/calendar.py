@@ -108,7 +108,9 @@ class Schedule(object):
         query_end = query_end.astimezone(self.timezone)
 
         for range in self.to_periods(range_start=query_start.date(), range_end=query_end.date()):
-            if ((query_start <= range.start <= query_end)
+            if (
+                    ((range.start < query_start) and (range.end > query_end))
+                    or (query_start <= range.start <= query_end)
                     or (query_start <= range.end <= query_end)):
                 return True
         return False
@@ -142,7 +144,7 @@ class Schedule(object):
             if self.end_date:
                 kw['until'] = min(range_end, self.end_date)
             else:
-                if range_end < datetime.datetime.max:
+                if range_end < datetime.date.max:
                     kw['until'] = range_end
                 elif infinite_limit:
                     kw['count'] = infinite_limit

@@ -4,7 +4,7 @@ import time
 import urlparse
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.template.defaultfilters import escape
 from django.utils.http import http_date
@@ -14,6 +14,7 @@ from django.views.generic import View
 from lxml import etree
 from lxml.builder import E
 
+from open511.utils.exceptions import BadRequest
 from open511.utils.http import accept_from_request, accept_language_from_request
 from open511.utils.pagination import APIPaginator
 from open511.utils.serialization import xml_to_json, get_base_open511_element, make_link
@@ -84,7 +85,10 @@ class APIView(View):
 
         request.accept_language = self.determine_accept_language(request)
 
-        result = super(APIView, self).dispatch(request, *args, **kwargs)
+        try:
+            result = super(APIView, self).dispatch(request, *args, **kwargs)
+        except BadRequest as e:
+            return HttpResponseBadRequest(unicode(e))
 
         if isinstance(result, HttpResponse):
             return result

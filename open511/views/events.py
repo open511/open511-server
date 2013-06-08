@@ -14,6 +14,7 @@ import dateutil.parser
 from pytz import utc
 
 from open511.models import RoadEvent, Jurisdiction, SearchGeometry
+from open511.utils.exceptions import BadRequest
 from open511.utils.views import APIView, ModelListAPIView, Resource
 
 
@@ -125,6 +126,8 @@ class RoadEventListView(ModelListAPIView):
                 start = dateutil.parser.parse(raw_start)
                 end = dateutil.parser.parse(raw_end) if raw_end else None
             if end:
+                if (end - start) > datetime.timedelta(days=40):
+                    raise BadRequest("The in_effect_on filter can't handle ranges of more than 40 days.")
                 filter_func = lambda o: o.schedule.active_within_range(start, end)
             else:
                 filter_func = lambda o: o.schedule.includes(start)
