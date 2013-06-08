@@ -334,7 +334,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def get_validation_xml(self):
         return self.to_full_xml_element(fake_links=True)
 
-    def to_full_xml_element(self, accept_language=None, fake_links=False):
+    def to_full_xml_element(self, accept_language=None,
+            fake_links=False, remove_internal_elements=False):
         el = deepcopy(self.xml_elem)
 
         el.insert(0, E.status('ACTIVE' if self.active else 'ARCHIVED'))
@@ -349,6 +350,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))
 
+        if remove_internal_elements:
+            for internal_element in el.xpath('//*[namespace-uri()="' + NSMAP['protected'] + '"]'):
+                internal_element.getparent().remove(internal_element)
+
         self.remove_unnecessary_languages(accept_language, el)
 
         return el
@@ -356,13 +361,18 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     def _get_or_create_el(self, path, parent=None):
         if parent is None:
             parent = self.xml_elem
-        els = parent.xpath(path)
+        xpath_query = path
+        if path[0] == '!':
+            xpath_query = 'protected:' + path[1:]
+        els = parent.xpath(xpath_query, namespaces=NSMAP)
         if len(els) == 1:
             return els[0]
         elif not els:
             if '/' in path:
                 raise NotImplementedError
-            el = etree.Element(path)
+            elif path[0] == '!':
+                path = '{' + NSMAP['protected'] + '}' + path[1:]
+            el = etree.Element(path, nsmap=NSMAP)
             parent.append(el)
             return el
         elif len(els) > 1:

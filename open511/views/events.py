@@ -147,7 +147,8 @@ class RoadEventListView(ModelListAPIView):
         return qs
 
     def object_to_xml(self, request, obj):
-        return obj.to_full_xml_element(accept_language=request.accept_language)
+        return obj.to_full_xml_element(accept_language=request.accept_language,
+            remove_internal_elements=not request.user.is_authenticated())
 
     def post(self, request):
         if request.META['CONTENT_TYPE'] == 'application/json':
@@ -218,7 +219,10 @@ class RoadEventView(APIView):
 
     def get(self, request, jurisdiction_slug, id):
         rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
-        return Resource(rdev.to_full_xml_element(accept_language=request.accept_language))
+        return Resource(rdev.to_full_xml_element(
+            accept_language=request.accept_language,
+            remove_internal_elements=not request.user.is_authenticated()
+        ))
 
 list_roadevents = RoadEventListView.as_view()
 roadevent = RoadEventView.as_view()

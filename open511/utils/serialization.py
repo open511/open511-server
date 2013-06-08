@@ -21,7 +21,8 @@ GML_NS = 'http://www.opengis.net/gml'
 
 NSMAP = {
     'gml': GML_NS,
-    'atom': 'http://www.w3.org/2005/Atom'
+    'atom': 'http://www.w3.org/2005/Atom',
+    'protected': 'http://open511.org/internal-namespace'
 }
 
 try:
@@ -112,6 +113,11 @@ def xml_to_json(root):
             name = elem.get('rel') + '_url'
             if name == 'self_url':
                 name = 'url'
+        elif name.startswith('{' + NSMAP['protected']):
+            name = '!' + name[name.index('}') + 1:] 
+        elif name[0] == '{':
+            # Namespace!
+            name = '+' + name[name.index('}') + 1:]
 
         if name in j:
             continue  # duplicate
@@ -131,7 +137,10 @@ def xml_to_json(root):
 
 def json_to_xml(json_obj, root):
     if isinstance(root, basestring):
-        root = etree.Element(root)
+        if root.startswith('!'):
+            root = etree.Element('{%s}%s' % (NSMAP['protected'], root[1:]))
+        else:
+            root = etree.Element(root)
     if isinstance(json_obj, basestring):
         root.text = json_obj
     elif isinstance(json_obj, dict):
@@ -293,4 +302,4 @@ class XMLModelMixin(object):
             try:
                 schema.assertValid(doc)
             except etree.DocumentInvalid as e:
-                raise ValidationError(u"%s check failed: %s" % (schema_name, e))
+                raise ValidationError(u"%s check failed: %s\n\nDOCUMENT\n%s" % (schema_name, e, etree.tostring(doc, pretty_print=True)))
