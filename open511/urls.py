@@ -1,5 +1,5 @@
 from django.conf.urls import *
-from django.conf import settings
+from open511.conf import settings
 
 urlpatterns = patterns('open511.views',
     url(r'^events/$', 'events.list_roadevents', name='open511_roadevent_list'),
@@ -15,6 +15,11 @@ urlpatterns = patterns('open511.views',
 )
 
 if settings.DEBUG:
-    urlpatterns += patterns('open511.views.debug',
-        url(r'^debug/xml_to_json/?$', 'x2j'),
+    urlpatterns += patterns('',
+        url(r'^debug/xml_to_json/?$', 'open511.views.debug.x2j'),
     )
+
+    if settings.OPEN511_ENABLE_TEST_ENDPOINT:
+        urlpatterns += patterns('',
+            url(r'^_test/$', 'open511.views.test_endpoint.test_endpoint', name='open511_api_test_endpoint'),
+        )

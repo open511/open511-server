@@ -17,6 +17,7 @@ setup(
         'python-dateutil>=1.5,<2.0',
         'requests',
         'pytz',
+        'django-appconf==0.5',
     ],
     entry_points = {
         'console_scripts': [
