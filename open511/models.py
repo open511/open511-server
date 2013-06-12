@@ -50,7 +50,7 @@ class _Open511Model(models.Model):
         return url
 
     def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.now(utc)
+        self.updated = datetime.datetime.now(utc).replace(microsecond=0)  # microseconds == overkill
         return super(_Open511Model, self).save(*args, **kwargs)
 
     class Meta(object):

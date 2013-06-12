@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:atom="http://www.w3.org/2005/Atom" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+<grammar xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <start>
     <element name="open511">
       <optional>
@@ -132,7 +132,10 @@
   </define>
   <define name="JurisdictionGeography">
     <element name="geography">
-      <ref name="GML"/>
+      <choice>
+        <ref name="GMLPolygon"/>
+        <ref name="GMLMultiPolygon"/>
+      </choice>
     </element>
   </define>
   <define name="RoadEvent">
@@ -156,11 +159,11 @@
             <ref name="FreeTextType"/>
           </element>
         </oneOrMore>
-        <oneOrMore>
+        <zeroOrMore>
           <element name="description">
             <ref name="FreeTextType"/>
           </element>
-        </oneOrMore>
+        </zeroOrMore>
         <element name="event_type">
           <choice>
             <value>CONSTRUCTION</value>
@@ -171,11 +174,78 @@
           </choice>
         </element>
         <optional>
-          <element name="event_subtype">
-            <text/>
+          <element name="event_subtypes">
+            <oneOrMore>
+              <element name="event_subtype">
+                <choice>
+                  <value>ACCIDENT</value>
+                  <value>SERIOUS_ACCIDENT</value>
+                  <value>NUMEROUS_ACCIDENTS</value>
+                  <value>STALLED_VEHICLE</value>
+                  <value>SPILL</value>
+                  <value>OBSTRUCTION</value>
+                  <value>MAJOR_HAZARD</value>
+                  <value>DEMONSTRATION</value>
+                  <value>ROAD_CONSTRUCTION</value>
+                  <value>WORK_IN_THE_MEDIAN</value>
+                  <value>NARROW_LANES</value>
+                  <value>TRAFFIC_ALTERNATING_DIRECTIONS</value>
+                  <value>BRIDGE_OPERATIONS</value>
+                  <value>BLASTING</value>
+                  <value>WORK_ON_UNDERGROUND</value>
+                  <value>EMERGENCY_MAINTENANCE</value>
+                  <value>SPORTING_EVENT</value>
+                  <value>MAJOR_EVENT</value>
+                  <value>CONCERT</value>
+                  <value>FESTIVAL</value>
+                  <value>FIREWORKS</value>
+                  <value>PARADE</value>
+                  <value>CROWD</value>
+                  <value>SEVERE_WEATHER</value>
+                  <value>HEAVY_SNOW</value>
+                  <value>SNOW</value>
+                  <value>ICE_GLAZE</value>
+                  <value>HEAVY_FROST</value>
+                  <value>ICE_STORM</value>
+                  <value>DAMAGING_HAIL</value>
+                  <value>THUNDERSTORM</value>
+                  <value>HEAVY_DOWNPOUR</value>
+                  <value>TORNADO</value>
+                  <value>HURRICANE</value>
+                  <value>STRONG_WINDS</value>
+                  <value>DENSE_FOG</value>
+                  <value>FREEZING_FOG</value>
+                  <value>ICE_FOG MIST</value>
+                  <value>VISIBILITY_REDUCED</value>
+                  <value>VISIBILITY_BLOCKED</value>
+                  <value>BLOWING_SNOW</value>
+                  <value>BLOWING_DUST</value>
+                  <value>SANDSTORM</value>
+                  <value>INSECT_SWARMS</value>
+                  <value>IMPASSABLE</value>
+                  <value>ALMOST_IMPASSABLE</value>
+                  <value>PASSABLE_WITH_CARE</value>
+                  <value>SURFACE_WATER_HAZARD</value>
+                  <value>HYDROPLANING_DANGER</value>
+                  <value>SLIPPERY</value>
+                  <value>MUD</value>
+                  <value>LOOSE_GRAVEL</value>
+                  <value>OIL_ON_ROADWAY</value>
+                  <value>ICE</value>
+                  <value>BLACK_ICE</value>
+                  <value>WET_ICY_ROAD</value>
+                  <value>SLUSH</value>
+                  <value>FROZEN_SLUSH</value>
+                  <value>SNOW</value>
+                  <value>PACKED_SNOW</value>
+                  <value>PLOWED_SNOW</value>
+                  <value>POWDER_SNOW</value>
+                  <value>DEEP_SNOW</value>
+                </choice>
+              </element>
+            </oneOrMore>
           </element>
         </optional>
-        <!-- FIXME -->
         <element name="severity">
           <choice>
             <value>1</value>
@@ -206,7 +276,7 @@
           </element>
         </zeroOrMore>
         <element name="geography">
-          <ref name="GML"/>
+          <ref name="AnyGML"/>
         </element>
         <optional>
           <element name="grouped_events">
@@ -337,14 +407,14 @@
           </element>
         </optional>
         <optional>
-          <element name="day_of_week">
-            <list>
-              <oneOrMore>
+          <element name="days">
+            <oneOrMore>
+              <element name="day">
                 <data type="string">
                   <param name="pattern">[1-7]</param>
                 </data>
-              </oneOrMore>
-            </list>
+              </element>
+            </oneOrMore>
           </element>
         </optional>
         <optional>
@@ -406,10 +476,21 @@
   </define>
   <define name="ServiceDefinition">
     <element name="service">
-      <element name="service_type">
-        <text/>
-      </element>
-      <ref name="SelfLink"/>
+      <interleave>
+        <element name="service_type">
+          <text/>
+        </element>
+        <ref name="SelfLink"/>
+        <optional>
+          <element name="supported_versions">
+            <oneOrMore>
+              <element name="supported_version">
+                <text/>
+              </element>
+            </oneOrMore>
+          </element>
+        </optional>
+      </interleave>
     </element>
   </define>
   <define name="Link">
@@ -482,28 +563,128 @@
         <element name="offset">
           <data type="integer"/>
         </element>
-        <element name="limit">
-          <data type="integer"/>
-        </element>
         <zeroOrMore>
-          <!-- FIXME -->
           <ref name="Link"/>
         </zeroOrMore>
       </interleave>
     </element>
   </define>
-  <define name="GML">
-    <element>
-      <nsName ns="http://www.opengis.net/gml"/>
+  <define name="AnyGML">
+    <choice>
+      <ref name="GMLPoint"/>
+      <ref name="GMLMultiPoint"/>
+      <ref name="GMLLineString"/>
+      <ref name="GMLMultiLineString"/>
+      <ref name="GMLPolygon"/>
+      <ref name="GMLMultiPolygon"/>
+    </choice>
+  </define>
+  <define name="srsName">
+    <attribute name="srsName">
+      <choice>
+        <value>EPSG:4326</value>
+        <value>urn:ogc:def:crs:EPSG:4326</value>
+      </choice>
+    </attribute>
+  </define>
+  <define name="GMLCoord">
+    <data type="string">
+      <param name="pattern">-?[0-9]+\.[0-9]+,-?[0-9]+\.[0-9]+</param>
+    </data>
+  </define>
+  <define name="GMLCoordList">
+    <list>
+      <oneOrMore>
+        <ref name="GMLCoord"/>
+      </oneOrMore>
+    </list>
+  </define>
+  <define name="GMLPoint">
+    <element name="gml:Point">
+      <ref name="srsName"/>
+      <element name="gml:coordinates">
+        <ref name="GMLCoord"/>
+      </element>
+    </element>
+  </define>
+  <define name="GMLMultiPoint">
+    <element name="gml:MultiPoint">
+      <ref name="srsName"/>
+      <oneOrMore>
+        <element name="gml:pointMember">
+          <element name="gml:Point">
+            <element name="gml:coordinates">
+              <ref name="GMLCoord"/>
+            </element>
+          </element>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="GMLLineString">
+    <element name="gml:LineString">
+      <ref name="srsName"/>
+      <element name="gml:coordinates">
+        <ref name="GMLCoordList"/>
+      </element>
+    </element>
+  </define>
+  <define name="GMLMultiLineString">
+    <element name="gml:MultiLineString">
+      <ref name="srsName"/>
+      <oneOrMore>
+        <element name="gml:lineStringMember">
+          <element name="gml:LineString">
+            <element name="gml:coordinates">
+              <ref name="GMLCoordList"/>
+            </element>
+          </element>
+        </element>
+      </oneOrMore>
+    </element>
+  </define>
+  <define name="GMLOuterBoundary">
+    <element name="gml:outerBoundaryIs">
+      <element name="gml:LinearRing">
+        <element name="gml:coordinates">
+          <ref name="GMLCoordList"/>
+        </element>
+      </element>
+    </element>
+  </define>
+  <define name="GMLInnerBoundary">
+    <element name="gml:innerBoundaryIs">
+      <element name="gml:LinearRing">
+        <element name="gml:coordinates">
+          <ref name="GMLCoordList"/>
+        </element>
+      </element>
+    </element>
+  </define>
+  <define name="GMLPolygon">
+    <element name="gml:Polygon">
+      <ref name="srsName"/>
+      <oneOrMore>
+        <ref name="GMLOuterBoundary"/>
+      </oneOrMore>
       <zeroOrMore>
-        <choice>
-          <attribute>
-            <anyName/>
-          </attribute>
-          <text/>
-          <ref name="GML"/>
-        </choice>
+        <ref name="GMLInnerBoundary"/>
       </zeroOrMore>
+    </element>
+  </define>
+  <define name="GMLMultiPolygon">
+    <element name="gml:MultiPolygon">
+      <ref name="srsName"/>
+      <oneOrMore>
+        <element name="gml:polygonMember">
+          <element name="gml:Polygon">
+            <ref name="GMLOuterBoundary"/>
+            <zeroOrMore>
+              <ref name="GMLInnerBoundary"/>
+            </zeroOrMore>
+          </element>
+        </element>
+      </oneOrMore>
     </element>
   </define>
   <define name="ForeignElement">

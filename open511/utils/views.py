@@ -259,9 +259,8 @@ class ResourceList(object):
 
     def pagination_to_xml(self):
         el = E.pagination(
-            #E.totalCount(unicode(self.pagination['totalCount'])),
             E.offset(unicode(self.pagination['offset'])),
-            E.limit(unicode(self.pagination['limit'])),
+            # E.limit(unicode(self.pagination['limit'])),
         )
         for linkname in ['previous_url', 'next_url']:
             url = self.pagination.get(linkname)

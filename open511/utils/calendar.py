@@ -2,10 +2,10 @@ from collections import namedtuple
 import datetime
 
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from dateutil import rrule
 import pytz
-from pytz import utc
 
 from open511.utils.cache import memoize_method
 
@@ -66,10 +66,17 @@ class Schedule(object):
         else:
             raise ValidationError("The event doesn't have a timezone, and nor does the jurisdiction.")
 
+    def to_timezone(self, dt):
+        """Converts a datetime to the timezone of this Schedule.
+        If the datetime is naive, assumes it's from the global default timezone."""
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt, timezone.get_default_timezone())
+        return dt.astimezone(self.timezone)
+
     def includes(self, query):
         """Does this schedule include the provided time?
         query should be a timezone-aware datetime"""
-        query = query.astimezone(self.timezone)
+        query = self.to_timezone(query)
         query_date = query.date()
         query_time = query.time()
 
@@ -104,8 +111,8 @@ class Schedule(object):
         """Is this event ever active between query_start and query_end,
         which are timezone-aware datetimes?"""
 
-        query_start = query_start.astimezone(self.timezone)
-        query_end = query_end.astimezone(self.timezone)
+        query_start = self.to_timezone(query_start)
+        query_end = self.to_timezone(query_end)
 
         for range in self.to_periods(range_start=query_start.date(), range_end=query_end.date()):
             if (
@@ -199,7 +206,6 @@ class Schedule(object):
     def weekdays(self):
         """A set of integers representing the weekdays the event recurs on,
         with Monday = 0 and Sunday = 6."""
-        wd = self.root.findtext('days_of_week')
-        if not wd:
+        if not self.root.xpath('days'):
             return set(range(7))
-        return set(int(d) - 1 for d in wd.split(' '))
+        return set(int(d) - 1 for d in self.root.xpath('days/day/text()'))

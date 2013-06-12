@@ -1,5 +1,7 @@
 from django.conf import settings
 
+from open511.utils.exceptions import BadRequest
+
 class APIPaginator(object):
     """
     Largely cribbed from django-tastypie.
@@ -117,7 +119,7 @@ class APIPaginator(object):
 
         page_data = {
             'offset': offset,
-            'limit': limit,
+            # 'limit': limit,
         }
 
         # We get one more object than requested, to see if
