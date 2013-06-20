@@ -72,10 +72,12 @@ def feature_to_open511_element(feature):
         set_val('description', '\n\n'.join(description_bits))
 
     try:
-        url = blob.cssselect('#avis_residants a, #en_savoir_plus a')[0].get('href')
+        link = blob.cssselect('#avis_residants a, #en_savoir_plus a')[0]
         e = etree.Element(ATOM_LINK)
         e.set('rel', 'related')
-        e.set('href', url)
+        e.set('href', link.get('url'))
+        if link.get('title'):
+            e.set('title', link.get('title'))
         elem.append(E.attachments(e))
     except IndexError:
         pass
