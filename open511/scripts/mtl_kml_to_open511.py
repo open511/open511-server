@@ -75,7 +75,7 @@ def feature_to_open511_element(feature):
         link = blob.cssselect('#avis_residants a, #en_savoir_plus a')[0]
         e = etree.Element(ATOM_LINK)
         e.set('rel', 'related')
-        e.set('href', link.get('url'))
+        e.set('href', link.get('href'))
         if link.get('title'):
             e.set('title', link.get('title'))
         elem.append(E.attachments(e))
