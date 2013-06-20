@@ -95,6 +95,28 @@ def make_link(rel, href):
     l.set('href', href)
     return l
 
+def xml_link_to_json(link, to_dict=False):
+    if to_dict:
+        d = {'url': link.get('href')}
+        for attr in ('type', 'title', 'length'):
+            if link.get(attr):
+                d[attr] = link.get(attr)
+        return d
+    else:
+        return link.get('href')
+
+def json_link_to_xml(val, rel='related'):
+    tag = etree.Element(ATOM_LINK)
+    tag.set('rel', rel)
+    if hasattr(val, 'get') and 'url' in val:
+        tag.set('href', val['url'])
+        for attr in ('type', 'title', 'length'):
+            if val.get(attr):
+                tag.set(attr, unicode(val[attr]))
+    else:
+        tag.set('href', val)
+    return tag
+
 def xml_to_json(root):
     j = {}
 
@@ -124,8 +146,10 @@ def xml_to_json(root):
         elif elem.tag == ATOM_LINK and not elem.text:
             j[name] = elem.get('href')
         elif len(elem):
-            # Is it a list of identical values?
-            if all((name == child.tag + 's' for child in elem)):
+            if name in ('attachments', 'grouped_events'):
+                j[name] = [xml_link_to_json(child, to_dict=(name == 'attachments')) for child in elem]
+            elif all((name == child.tag + 's' for child in elem)):
+                # <something><somethings> serializes to a JSON array
                 j[name] = [xml_to_json(child) for child in elem]
             else:
                 j[name] = xml_to_json(elem)
@@ -141,7 +165,10 @@ def json_to_xml(json_obj, root):
             root = etree.Element('{%s}%s' % (NSMAP['protected'], root[1:]))
         else:
             root = etree.Element(root)
-    if isinstance(json_obj, basestring):
+    if root.tag in ('attachments', 'grouped_events'):
+        for link in json_obj:
+            root.append(json_link_to_xml(link))
+    elif isinstance(json_obj, basestring):
         root.text = json_obj
     elif isinstance(json_obj, dict):
         for key, val in json_obj.items():
