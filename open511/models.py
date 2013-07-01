@@ -281,6 +281,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
     jurisdiction = models.ForeignKey(Jurisdiction)
     severity = models.SmallIntegerField(blank=True, null=True, db_index=True)
 
+    published = models.BooleanField(default=True, db_index=True)
+
     external_url = models.URLField(blank=True, db_index=True)
 
     geom = models.GeometryField(verbose_name=_('Geometry'), geography=True)
@@ -356,6 +358,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         if remove_internal_elements:
             for internal_element in el.xpath('//*[namespace-uri()="' + NSMAP['protected'] + '"]'):
                 internal_element.getparent().remove(internal_element)
+        else:
+            published = etree.Element('{%s}published' % NSMAP['protected'])
+            published.text = 'true' if self.published else 'false'
+            el.append(published)
 
         self.remove_unnecessary_languages(accept_language, el)
 
@@ -388,7 +394,11 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         elif key == 'status':
             self.active = (val.upper() == 'ACTIVE')
             return
+        elif key == '!published':
+            self.published = (unicode(val).lower() == 'true')
+            return
         elif key.startswith('_'):
+            # ignore internal fields
             return
 
         update_el = self._get_or_create_el(key)

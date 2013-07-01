@@ -1,19 +1,19 @@
 import datetime
 from functools import partial
 import json
-from urllib import urlencode
 
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.measure import Distance
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
 from pytz import utc
 
 from open511.models import RoadEvent, Jurisdiction, SearchGeometry
+from open511.utils.auth import can
 from open511.utils.exceptions import BadRequest
 from open511.utils.views import APIView, ModelListAPIView, Resource
 
@@ -140,6 +140,9 @@ class RoadEventListView(ModelListAPIView):
             jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
             qs = qs.filter(jurisdiction=jur)
 
+        if not can(request, 'view_internal'):
+            qs = qs.filter(published=True)
+
         if 'status' not in request.REQUEST:
             # By default, show only active events
             qs = qs.filter(active=True)
@@ -147,8 +150,10 @@ class RoadEventListView(ModelListAPIView):
         return qs
 
     def object_to_xml(self, request, obj):
-        return obj.to_full_xml_element(accept_language=request.accept_language,
-            remove_internal_elements=not request.user.is_authenticated())
+        return obj.to_full_xml_element(
+            accept_language=request.accept_language,
+            remove_internal_elements=not can(request, 'view_internal')
+        )
 
     def post(self, request):
         if request.META['CONTENT_TYPE'] == 'application/json':
@@ -218,10 +223,16 @@ class RoadEventView(APIView):
         return HttpResponse(status=204)
 
     def get(self, request, jurisdiction_slug, id):
-        rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
+        base_qs = RoadEvent.objects.filter(jurisdiction__slug=jurisdiction_slug)
+        if not can(request, 'view_internal'):
+            base_qs = base_qs.filter(published=True)
+        try:
+            rdev = base_qs.get(id=id)
+        except RoadEvent.DoesNotExist:
+            raise Http404
         return Resource(rdev.to_full_xml_element(
             accept_language=request.accept_language,
-            remove_internal_elements=not request.user.is_authenticated()
+            remove_internal_elements=not can(request, 'view_internal')
         ))
 
 list_roadevents = RoadEventListView.as_view()
