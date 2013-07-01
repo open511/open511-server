@@ -359,9 +359,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             for internal_element in el.xpath('//*[namespace-uri()="' + NSMAP['protected'] + '"]'):
                 internal_element.getparent().remove(internal_element)
         else:
-            published = etree.Element('{%s}published' % NSMAP['protected'])
-            published.text = 'true' if self.published else 'false'
-            el.append(published)
+            if not self.published:
+                unpublished = etree.Element('{%s}unpublished' % NSMAP['protected'], nsmap=NSMAP)
+                unpublished.text = 'true'
+                el.append(unpublished)
 
         self.remove_unnecessary_languages(accept_language, el)
 
@@ -381,7 +382,9 @@ class RoadEvent(_Open511Model, XMLModelMixin):
                 raise NotImplementedError
             elif path[0] == '!':
                 path = '{' + NSMAP['protected'] + '}' + path[1:]
-            el = etree.Element(path, nsmap=NSMAP)
+                el = etree.Element(path, nsmap=NSMAP)
+            else:
+                el = etree.Element(path)
             parent.append(el)
             return el
         elif len(els) > 1:
@@ -394,8 +397,8 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         elif key == 'status':
             self.active = (val.upper() == 'ACTIVE')
             return
-        elif key == '!published':
-            self.published = (unicode(val).lower() == 'true')
+        elif key == '!unpublished':
+            self.published = (not val) or unicode(val).lower() == 'false'
             return
         elif key.startswith('_'):
             # ignore internal fields
