@@ -31,10 +31,13 @@ from open511.utils.serialization import (
 )
 
 
+def _now():
+    return datetime.datetime.now(utc).replace(microsecond=0)  # microseconds == overkill
+
 class _Open511Model(models.Model):
 
-    created = models.DateTimeField(default=lambda: datetime.datetime.now(utc))
-    updated = models.DateTimeField(default=lambda: datetime.datetime.now(utc))
+    created = models.DateTimeField(default=_now)
+    updated = models.DateTimeField(default=_now)
 
     @property
     def url(self):
@@ -50,7 +53,7 @@ class _Open511Model(models.Model):
         return url
 
     def save(self, *args, **kwargs):
-        self.updated = datetime.datetime.now(utc).replace(microsecond=0)  # microseconds == overkill
+        self.updated = _now()
         return super(_Open511Model, self).save(*args, **kwargs)
 
     class Meta(object):
