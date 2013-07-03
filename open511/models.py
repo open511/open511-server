@@ -26,7 +26,7 @@ from open511.utils.calendar import Schedule
 from open511.utils.geojson import geojson_to_ewkt
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (
-    geom_to_xml_element, XML_LANG, ATOM_LINK, XMLModelMixin, NSMAP,
+    geom_to_xml_element, XML_LANG, XMLModelMixin, NSMAP,
     json_to_xml, make_link
 )
 
@@ -86,7 +86,7 @@ class JurisdictionManager(models.GeoManager):
     def update_or_create_from_xml(self, xml_jurisdiction, base_url=None):
         xml_jurisdiction = deepcopy(xml_jurisdiction)
         jur_id = xml_jurisdiction.xpath('id/text()')[0]
-        self_link = xml_jurisdiction.xpath('atom:link[@rel="self"]',
+        self_link = xml_jurisdiction.xpath('link[@rel="self"]',
             namespaces=NSMAP)[0]
         if not base_url:
             base_url = self_link.get('href')
@@ -103,10 +103,10 @@ class JurisdictionManager(models.GeoManager):
             except IndexError:
                 pass
 
-        for path in ['status', 'created', 'updated', 'atom:link[@rel="self"]', 'id']:
+        for path in ['status', 'created', 'updated', 'link[@rel="self"]', 'id']:
             for elem in xml_jurisdiction.xpath(path, namespaces=NSMAP):
                 xml_jurisdiction.remove(elem)
-        for link in xml_jurisdiction.xpath('atom:link', namespaces=NSMAP):
+        for link in xml_jurisdiction.xpath('link', namespaces=NSMAP):
             if not link.get('href').startswith('http'):
                 # If the link isn't absolute, make it so
                 link.set('href', urljoin(base_url, link.get('href')))
@@ -157,7 +157,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         # el.append(E.updated(self.updated.isoformat()))
 
         if (
-                not el.xpath('atom:link[@rel="geography"]', namespaces=NSMAP)
+                not el.xpath('link[@rel="geography"]', namespaces=NSMAP)
                 and JurisdictionGeography.objects.filter(jurisdiction=self).exists()):
             el.append(make_link('geography', self.get_absolute_url() + 'geography/'))
 
@@ -205,7 +205,7 @@ class RoadEventManager(models.GeoManager):
             default_jurisdiction=None, default_language=settings.LANGUAGE_CODE, base_url=''):
         # Identify the jurisdiction
         event = deepcopy(event)
-        external_jurisdiction = event.xpath('atom:link[@rel="jurisdiction"]',
+        external_jurisdiction = event.xpath('link[@rel="jurisdiction"]',
             namespaces=NSMAP)
         if external_jurisdiction:
             jurisdiction = Jurisdiction.objects.get_or_create_from_url(external_jurisdiction[0].get('href'))
@@ -215,7 +215,7 @@ class RoadEventManager(models.GeoManager):
         else:
             raise Exception("No jurisdiction provided")
 
-        self_link = event.xpath('atom:link[@rel="self"]',
+        self_link = event.xpath('link[@rel="self"]',
             namespaces=NSMAP)
         if self_link:
             external_url = urljoin(base_url, self_link[0].get('href'))
@@ -287,7 +287,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     geom = models.GeometryField(verbose_name=_('Geometry'), geography=True)
     xml_data = XMLField(
-        default='<event xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" />')
+        default='<event xmlns:gml="http://www.opengis.net/gml" />')
 
     objects = RoadEventManager()
 
@@ -456,7 +456,7 @@ class Area(_Open511Model, XMLModelMixin):
 
     geonames_id = models.IntegerField(primary_key=True)
 
-    xml_data = XMLField(default='<area xmlns:atom="http://www.w3.org/2005/Atom" />')
+    xml_data = XMLField(default='<area />')
 
     geom = models.GeometryField(blank=True, null=True)
 

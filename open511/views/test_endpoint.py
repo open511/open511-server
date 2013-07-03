@@ -22,12 +22,12 @@ class TestEndpointView(View):
             jur = Jurisdiction.objects.get(slug='test.open511.org')
         except Jurisdiction.DoesNotExist:
             jur = Jurisdiction(slug='test.open511.org')
-        jur.xml_data = """<jurisdiction xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml">
+        jur.xml_data = """<jurisdiction xmlns:gml="http://www.opengis.net/gml">
             <name xml:lang="en">TEST</name>
             <timezone>America/Montreal</timezone>
             <email>contact@open511.org</email>
-            <atom:link rel="geography" href="http://test.open511.org/"/>
-            <atom:link rel="license" href="http://test.open511.org/"/>
+            <link rel="geography" href="http://test.open511.org/"/>
+            <link rel="license" href="http://test.open511.org/"/>
             </jurisdiction>"""
         jur.save()
 

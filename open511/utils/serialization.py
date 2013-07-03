@@ -16,12 +16,10 @@ from open511.utils.geojson import gml_to_geojson
 
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
-ATOM_LINK = '{http://www.w3.org/2005/Atom}link'
 GML_NS = 'http://www.opengis.net/gml'
 
 NSMAP = {
     'gml': GML_NS,
-    'atom': 'http://www.w3.org/2005/Atom',
     'protected': 'http://open511.org/internal-namespace'
 }
 
@@ -81,7 +79,6 @@ ELEMENTS_LOOKUP = dict((f.tag, f) for f in ELEMENTS)
 def get_base_open511_element(lang=None, base=None):
     elem = etree.Element("open511", nsmap={
         'gml': 'http://www.opengis.net/gml',
-        'atom': 'http://www.w3.org/2005/Atom'
     })
     if lang:
         elem.set(XML_LANG, lang)
@@ -90,7 +87,7 @@ def get_base_open511_element(lang=None, base=None):
     return elem
 
 def make_link(rel, href):
-    l = etree.Element(ATOM_LINK)
+    l = etree.Element('link')
     l.set('rel', rel)
     l.set('href', href)
     return l
@@ -106,7 +103,7 @@ def xml_link_to_json(link, to_dict=False):
         return link.get('href')
 
 def json_link_to_xml(val, rel='related'):
-    tag = etree.Element(ATOM_LINK)
+    tag = etree.Element('link')
     tag.set('rel', rel)
     if hasattr(val, 'get') and 'url' in val:
         tag.set('href', val['url'])
@@ -131,7 +128,7 @@ def xml_to_json(root):
 
     for elem in root:
         name = elem.tag
-        if name == ATOM_LINK and elem.get('rel'):
+        if name == 'link' and elem.get('rel'):
             name = elem.get('rel') + '_url'
             if name == 'self_url':
                 name = 'url'
@@ -143,7 +140,7 @@ def xml_to_json(root):
 
         if name in j:
             continue  # duplicate
-        elif elem.tag == ATOM_LINK and not elem.text:
+        elif elem.tag == 'link' and not elem.text:
             j[name] = elem.get('href')
         elif len(elem):
             if name in ('attachments', 'grouped_events'):

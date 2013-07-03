@@ -15,8 +15,7 @@ from lxml import etree
 from lxml.builder import E
 import lxml.html
 
-from open511.utils.serialization import (geom_to_xml_element, get_base_open511_element,
-    ATOM_LINK)
+from open511.utils.serialization import (geom_to_xml_element, get_base_open511_element)
 
 ids_seen = set()
 
@@ -73,7 +72,7 @@ def feature_to_open511_element(feature):
 
     try:
         link = blob.cssselect('#avis_residants a, #en_savoir_plus a')[0]
-        e = etree.Element(ATOM_LINK)
+        e = etree.Element('link')
         e.set('rel', 'related')
         e.set('href', link.get('href'))
         if link.get('title'):

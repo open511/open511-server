@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<grammar xmlns:atom="http://www.w3.org/2005/Atom" xmlns:gml="http://www.opengis.net/gml" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+<grammar xmlns:gml="http://www.opengis.net/gml" xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
   <start>
     <element name="open511">
       <optional>
@@ -494,7 +494,7 @@
     </element>
   </define>
   <define name="Link">
-    <element name="atom:link">
+    <element name="link">
       <attribute name="rel"/>
       <attribute name="href">
         <data type="anyURI"/>
@@ -502,7 +502,7 @@
     </element>
   </define>
   <define name="SelfLink">
-    <element name="atom:link">
+    <element name="link">
       <attribute name="rel">
         <value>self</value>
       </attribute>
@@ -512,7 +512,7 @@
     </element>
   </define>
   <define name="UpLink">
-    <element name="atom:link">
+    <element name="link">
       <attribute name="rel">
         <value>up</value>
       </attribute>
@@ -522,7 +522,7 @@
     </element>
   </define>
   <define name="RelatedLink">
-    <element name="atom:link">
+    <element name="link">
       <attribute name="rel">
         <value>related</value>
       </attribute>
@@ -532,7 +532,7 @@
     </element>
   </define>
   <define name="VerboseRelatedLink">
-    <element name="atom:link">
+    <element name="link">
       <attribute name="rel">
         <value>related</value>
       </attribute>
@@ -581,10 +581,7 @@
   </define>
   <define name="srsName">
     <attribute name="srsName">
-      <choice>
-        <value>EPSG:4326</value>
-        <value>urn:ogc:def:crs:EPSG:4326</value>
-      </choice>
+      <value>EPSG:4326</value>
     </attribute>
   </define>
   <define name="GMLCoord">
@@ -692,7 +689,6 @@
       <anyName>
         <except>
           <nsName ns=""/>
-          <nsName ns="http://www.w3.org/2005/Atom"/>
         </except>
       </anyName>
       <zeroOrMore>
