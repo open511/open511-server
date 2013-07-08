@@ -156,7 +156,7 @@ class RoadEventListView(ModelListAPIView):
         )
 
     def post(self, request):
-        if request.META['CONTENT_TYPE'] == 'application/json':
+        if 'application/json' in request.META['CONTENT_TYPE']:
             return self.post_to_create(request)
 
         opts = request.POST.copy()
