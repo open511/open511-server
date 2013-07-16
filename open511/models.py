@@ -467,7 +467,7 @@ class Area(_Open511Model, XMLModelMixin):
 
     objects = models.GeoManager()
 
-    FREE_TEXT_TAGS = ['area_name']
+    FREE_TEXT_TAGS = ['name']
 
     @property
     def name(self):
@@ -477,8 +477,8 @@ class Area(_Open511Model, XMLModelMixin):
         return u"%s (%s)" % (self.name, self.geonames_id)
 
     def save(self, *args, **kwargs):
-        if not self.xml_elem.xpath('area_id'):
-            self.xml_elem.insert(0, E.area_id(str(self.geonames_id)))
+        if not self.xml_elem.xpath('id'):
+            self.xml_elem.insert(0, E.id(str(self.geonames_id)))
             self.xml_elem.append(make_link('self', 'http://geonames.org/%s/about.rdf' % self.geonames_id))
         self.xml_data = etree.tostring(self.xml_elem)
         self.full_clean()

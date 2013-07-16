@@ -30,7 +30,7 @@ except (ImportError, ImproperlyConfigured):
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 RELAXNG_SCHEMA = etree.RelaxNG(etree.parse(os.path.join(CURRENT_DIR, 'open511.rng')))
-SCHEMATRON_DOC = isoschematron.Schematron(etree.parse(os.path.join(CURRENT_DIR, 'open511.sch')))
+SCHEMATRON_DOC = isoschematron.Schematron(etree.parse(os.path.join(CURRENT_DIR, 'open511.schematron')))
 
 etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)
