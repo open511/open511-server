@@ -348,9 +348,11 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         if fake_links:
             el.insert(0, make_link('jurisdiction', '/xxx'))
             el.insert(0, make_link('self', '/xxx/yyy'))
+            el.insert(0, E.id('xxx/%s' % self.id))
         else:
             el.insert(0, make_link('jurisdiction', self.jurisdiction.full_url))
             el.insert(0, make_link('self', self.url))
+            el.insert(0, E.id('/'.join((self.jurisdiction.slug, self.id))))
 
         el.append(E.created(self.created.isoformat()))
         el.append(E.updated(self.updated.isoformat()))

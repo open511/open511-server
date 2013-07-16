@@ -65,8 +65,8 @@ def filter_geography(qs, value, within=None):
 def filter_jurisdiction(qs, value):
     # The jurisdiction parameter can be:
     # - A full http:// URL to the external jurisdiction
-    # - Some kind relative URL: /api/jurisdictions/mtq
-    # - Just the slug: mtq
+    # - Some kind of relative URL: /api/jurisdictions/mtq
+    # - Just the ID: ville.montreal.qc.ca
     return qs.filter(Q(jurisdiction__external_url=value) | 
         Q(jurisdiction__slug=value.rstrip('/').split('/')[-1]))
 
