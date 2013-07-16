@@ -67,15 +67,15 @@ class Schedule(object):
             raise ValidationError("The event doesn't have a timezone, and nor does the jurisdiction.")
 
     def to_timezone(self, dt):
-        """Converts a datetime to the timezone of this Schedule.
-        If the datetime is naive, assumes it's from the global default timezone."""
-        if timezone.is_naive(dt):
-            dt = timezone.make_aware(dt, timezone.get_default_timezone())
-        return dt.astimezone(self.timezone)
+        """Converts a datetime to the timezone of this Schedule."""
+        if timezone.is_aware(dt):
+            return dt.astimezone(self.timezone)
+        else:
+            return timezone.make_aware(dt, self.timezone)
 
     def includes(self, query):
         """Does this schedule include the provided time?
-        query should be a timezone-aware datetime"""
+        query should be a datetime (naive or timezone-aware)"""
         query = self.to_timezone(query)
         query_date = query.date()
         query_time = query.time()
@@ -109,7 +109,7 @@ class Schedule(object):
 
     def active_within_range(self, query_start, query_end):
         """Is this event ever active between query_start and query_end,
-        which are timezone-aware datetimes?"""
+        which are (aware or naive) datetimes?"""
 
         query_start = self.to_timezone(query_start)
         query_end = self.to_timezone(query_end)
