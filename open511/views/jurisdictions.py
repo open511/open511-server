@@ -21,8 +21,8 @@ class JurisdictionView(APIView):
 
     up_url = '../../'
 
-    def get(self, request, slug):
-        jur = get_object_or_404(Jurisdiction, slug=slug)
+    def get(self, request, id):
+        jur = get_object_or_404(Jurisdiction, id=id)
         return Resource(jur.to_full_xml_element(accept_language=request.accept_language))
 
 
@@ -30,8 +30,8 @@ class JurisdictionGeographyView(APIView):
 
     model = JurisdictionGeography
 
-    def get(self, request, slug):
-        jur_geo = get_object_or_404(JurisdictionGeography, jurisdiction__slug=slug)
+    def get(self, request, id):
+        jur_geo = get_object_or_404(JurisdictionGeography, jurisdiction__id=id)
         return Resource(jur_geo.to_full_xml_element())
 
 list_jurisdictions = JurisdictionListView.as_view()

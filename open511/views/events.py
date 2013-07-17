@@ -68,7 +68,7 @@ def filter_jurisdiction(qs, value):
     # - Some kind of relative URL: /api/jurisdictions/mtq
     # - Just the ID: ville.montreal.qc.ca
     return qs.filter(Q(jurisdiction__external_url=value) | 
-        Q(jurisdiction__slug=value.rstrip('/').split('/')[-1]))
+        Q(jurisdiction__id=value.rstrip('/').split('/')[-1]))
 
 FILTER_OPERATORS = [
     ('<=', 'lte'),
@@ -135,10 +135,10 @@ class RoadEventListView(ModelListAPIView):
             objects = filter(filter_func, objects)
         return objects
 
-    def get_qs(self, request, jurisdiction_slug=None):
+    def get_qs(self, request, jurisdiction_id=None):
         qs = RoadEvent.objects.all()
-        if jurisdiction_slug:
-            jur = get_object_or_404(Jurisdiction, slug=jurisdiction_slug)
+        if jurisdiction_id:
+            jur = get_object_or_404(Jurisdiction, id=jurisdiction_id)
             qs = qs.filter(jurisdiction=jur)
 
         if not can(request, 'view_internal'):
@@ -177,7 +177,7 @@ class RoadEventListView(ModelListAPIView):
         jurisdiction_url = content.pop('jurisdiction_url')
         jurisdiction = Jurisdiction.objects.get(
             Q(external_url=jurisdiction_url) |
-            Q(slug=filter(None, jurisdiction_url.split('/'))[-1])
+            Q(id=filter(None, jurisdiction_url.split('/'))[-1])
         )
 
         if not jurisdiction.can_edit(request.user):
@@ -197,9 +197,9 @@ class RoadEventView(APIView):
 
     model = RoadEvent
 
-    def patch(self, request, jurisdiction_slug, id):
+    def patch(self, request, jurisdiction_id, id):
         # FIXME security, abstraction
-        rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
+        rdev = get_object_or_404(RoadEvent, jurisdiction__id=jurisdiction_id, id=id)
         updates = json.loads(request.body)
 
         if not rdev.jurisdiction.can_edit(request.user):
@@ -211,10 +211,10 @@ class RoadEventView(APIView):
         rdev.full_clean()
         rdev.save()
 
-        return self.get(request, jurisdiction_slug, id)
+        return self.get(request, jurisdiction_id, id)
 
-    def delete(self, request, jurisdiction_slug, id):
-        rdev = get_object_or_404(RoadEvent, jurisdiction__slug=jurisdiction_slug, id=id)
+    def delete(self, request, jurisdiction_id, id):
+        rdev = get_object_or_404(RoadEvent, jurisdiction__id=jurisdiction_id, id=id)
 
         if not rdev.jurisdiction.can_edit(request.user):
             raise PermissionDenied
@@ -223,8 +223,8 @@ class RoadEventView(APIView):
 
         return HttpResponse(status=204)
 
-    def get(self, request, jurisdiction_slug, id):
-        base_qs = RoadEvent.objects.filter(jurisdiction__slug=jurisdiction_slug)
+    def get(self, request, jurisdiction_id, id):
+        base_qs = RoadEvent.objects.filter(jurisdiction__id=jurisdiction_id)
         if not can(request, 'view_internal'):
             base_qs = base_qs.filter(published=True)
         try:

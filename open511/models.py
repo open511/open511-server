@@ -66,9 +66,9 @@ class JurisdictionManager(models.GeoManager):
         try:
             return self.get(external_url=url)
         except ObjectDoesNotExist:
-            slug = filter(None, url.split('/'))[-1]
+            id = filter(None, url.split('/'))[-1]
             try:
-                return self.get(slug=slug)
+                return self.get(id=id)
             except ObjectDoesNotExist:
                 pass
 
@@ -79,7 +79,7 @@ class JurisdictionManager(models.GeoManager):
         jur_id = jur.xpath('id/text()')[0]
         
         try:
-            return self.get(slug=jur_id)
+            return self.get(id=jur_id)
         except ObjectDoesNotExist:
             return self.update_or_create_from_xml(jur, base_url=url)
 
@@ -91,11 +91,11 @@ class JurisdictionManager(models.GeoManager):
         if not base_url:
             base_url = self_link.get('href')
         try:
-            jur = self.get(slug=jur_id)
+            jur = self.get(id=jur_id)
         except ObjectDoesNotExist:
             jur = self.model(
                 external_url=self_link.get('href'),
-                slug=jur_id
+                id=jur_id
             )
             try:
                 created = xml_jurisdiction.xpath('created/text()')[0]
@@ -114,14 +114,15 @@ class JurisdictionManager(models.GeoManager):
         jur.save()
         return jur
 
-    def get_default_timezone_for(self, id):
+    def get_default_timezone_for(self, internal_id):
         # FIXME cache
         return self.get(pk=id).default_timezone
 
 
 class Jurisdiction(_Open511Model, XMLModelMixin):
 
-    slug = models.CharField(max_length=200, unique=True, db_index=True)
+    internal_id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=100, unique=True, db_index=True)
 
     external_url = models.URLField(blank=True)
 
@@ -136,10 +137,10 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
     FREE_TEXT_TAGS = ['name', 'description']
 
     def __unicode__(self):
-        return self.slug
+        return self.id
 
     def get_absolute_url(self):
-        return urlresolvers.reverse('open511_jurisdiction', kwargs={'slug': self.slug})
+        return urlresolvers.reverse('open511_jurisdiction', kwargs={'id': self.id})
 
     def save(self, force_insert=False, force_update=False, using=None):
         self.xml_data = etree.tostring(self.xml_elem)
@@ -151,7 +152,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         el = deepcopy(self.xml_elem)
 
         el.insert(0, make_link('self', self.full_url))
-        el.insert(0, E.id(self.slug))
+        el.insert(0, E.id(self.id))
 
         # el.append(E.created(self.created.isoformat()))
         # el.append(E.updated(self.updated.isoformat()))
@@ -332,7 +333,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_roadevent', kwargs={
-            'jurisdiction_slug': self.jurisdiction.slug,
+            'jurisdiction_id': self.jurisdiction.id,
             'id': self.id}
         )
 
@@ -350,7 +351,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             el.insert(0, make_link('jurisdiction', '/xxx'))
             el.insert(0, make_link('self', '/xxx/yyy'))
         else:
-            el.insert(0, E.id('/'.join((self.jurisdiction.slug, self.id))))
+            el.insert(0, E.id('/'.join((self.jurisdiction.id, self.id))))
             el.insert(0, make_link('jurisdiction', self.jurisdiction.full_url))
             el.insert(0, make_link('self', self.url))
 

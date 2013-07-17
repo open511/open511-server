@@ -19,9 +19,9 @@ class TestEndpointView(View):
 
     def _clear(self):
         try:
-            jur = Jurisdiction.objects.get(slug='test.open511.org')
+            jur = Jurisdiction.objects.get(id='test.open511.org')
         except Jurisdiction.DoesNotExist:
-            jur = Jurisdiction(slug='test.open511.org')
+            jur = Jurisdiction(id='test.open511.org')
         jur.xml_data = """<jurisdiction xmlns:gml="http://www.opengis.net/gml">
             <name xml:lang="en">TEST</name>
             <timezone>America/Montreal</timezone>
@@ -37,7 +37,7 @@ class TestEndpointView(View):
         root = etree.fromstring(xml)
         assert root.tag == 'open511'
         opts = {
-            'default_jurisdiction': Jurisdiction.objects.get(slug='test.open511.org')
+            'default_jurisdiction': Jurisdiction.objects.get(id='test.open511.org')
         }
         if root.get(XML_LANG):
             opts['default_language'] = root.get(XML_LANG)
