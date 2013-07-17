@@ -77,7 +77,7 @@ class JurisdictionManager(models.GeoManager):
         root = etree.fromstring(req.content)
         jur = root.xpath('jurisdiction')[0]
         jur_id = jur.xpath('id/text()')[0]
-        
+
         try:
             return self.get(id=jur_id)
         except ObjectDoesNotExist:
@@ -86,8 +86,7 @@ class JurisdictionManager(models.GeoManager):
     def update_or_create_from_xml(self, xml_jurisdiction, base_url=None):
         xml_jurisdiction = deepcopy(xml_jurisdiction)
         jur_id = xml_jurisdiction.xpath('id/text()')[0]
-        self_link = xml_jurisdiction.xpath('link[@rel="self"]',
-            namespaces=NSMAP)[0]
+        self_link = xml_jurisdiction.xpath('link[@rel="self"]')[0]
         if not base_url:
             base_url = self_link.get('href')
         try:
@@ -203,35 +202,29 @@ class JurisdictionGeography(models.Model):
 class RoadEventManager(models.GeoManager):
 
     def update_or_create_from_xml(self, event,
-            default_jurisdiction=None, default_language=settings.LANGUAGE_CODE, base_url=''):
-        # Identify the jurisdiction
-        event = deepcopy(event)
-        external_jurisdiction = event.xpath('link[@rel="jurisdiction"]',
-            namespaces=NSMAP)
-        if external_jurisdiction:
-            jurisdiction = Jurisdiction.objects.get_or_create_from_url(external_jurisdiction[0].get('href'))
-            event.remove(external_jurisdiction[0])
-        elif default_jurisdiction:
-            jurisdiction = default_jurisdiction
-        else:
-            raise Exception("No jurisdiction provided")
+            default_language=settings.LANGUAGE_CODE, base_url=''):
 
-        self_link = event.xpath('link[@rel="self"]',
-            namespaces=NSMAP)
-        if self_link:
-            external_url = urljoin(base_url, self_link[0].get('href'))
-            id = filter(None, external_url.split('/'))[-1]
-            event.remove(self_link[0])
-        else:
-            external_url = ''
-            id = event.get('id')
-        if not id:
-            raise Exception("No ID provided")
+        event = deepcopy(event)
+
+        jurisdiction_id, event_id = event.findtext('id').split('/')
+        event.remove(event.xpath('id')[0])
+
+        external_jurisdiction = event.xpath('link[@rel="jurisdiction"]')
+        if external_jurisdiction:
+            event.remove(external_jurisdiction[0])
 
         try:
-            rdev = self.get(id=id, jurisdiction=jurisdiction)
+            jurisdiction = Jurisdiction.objects.get(id=jurisdiction_id)
+        except Jurisdiction.DoesNotExist:
+            jurisdiction = Jurisdiction.objects.get_or_create_from_url(external_jurisdiction[0].get('href'))
+
+        self_link = event.xpath('link[@rel="self"]')
+        external_url = urljoin(base_url, self_link[0].get('href')) if self_link else ''
+
+        try:
+            rdev = self.get(id=event_id, jurisdiction=jurisdiction)
         except RoadEvent.DoesNotExist:
-            rdev = self.model(id=id, jurisdiction=jurisdiction, external_url=external_url)
+            rdev = self.model(id=event_id, jurisdiction=jurisdiction, external_url=external_url)
 
         # Extract the geometry
         geometry = event.xpath('geography')[0]
@@ -242,10 +235,6 @@ class RoadEventManager(models.GeoManager):
         # And regenerate the GML so it's consistent with the PostGIS representation
         event.remove(geometry)
         event.append(E.geography(geom_to_xml_element(rdev.geom)))
-
-        # Remove the ID from the stored XML (we keep it in the table)
-        if 'id' in event.attrib:
-            del event.attrib['id']
 
         status = event.xpath('status')
         if status:

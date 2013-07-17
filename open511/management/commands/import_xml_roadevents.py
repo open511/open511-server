@@ -18,10 +18,8 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
 
     option_list = BaseCommand.option_list + (
-        make_option('-j', '--jurisdiction', action='store', dest='jurisdiction_slug',
-            help='The slug of the jurisdiction to import items into.'),
         make_option('--archive', action='store_true', dest='archive',
-            help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.')
+            help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.'),
     )
 
     def handle(self, source, **options):
@@ -33,19 +31,14 @@ class Command(BaseCommand):
 
         created = []
 
-        if options['jurisdiction_slug']:
-            default_jurisdiction = Jurisdiction.objects.get(slug=options['jurisdiction_slug'])
-        elif Jurisdiction.objects.filter(external_url='').count() == 1:
-            default_jurisdiction = Jurisdiction.objects.get(external_url='')
-        else:
-            default_jurisdiction = None
+        opts = {}
+        if options['archive']:
+            jurisdiction_ids = set(eid.split('/')[0] for eid in root.xpath('event/id/text()'))
+            if len(jurisdiction_ids) > 1:
+                raise ImproperlyConfigured(
+                    "To use the archive option, all events must belong to the same jurisdiction.")
+            archive_jurisdiction_id = jurisdiction_ids.pop()
 
-        if options['archive'] and not default_jurisdiction:
-            raise ImproperlyConfigured("To use the archive option, you must specify a jurisdiction.")
-
-        opts = {
-            'default_jurisdiction': default_jurisdiction
-        }
         if root.get(XML_LANG):
             opts['default_language'] = root.get(XML_LANG)
 
@@ -65,7 +58,8 @@ class Command(BaseCommand):
         msg = "%s entries imported." % len(created)
 
         if options['archive']:
-            updated = RoadEvent.objects.filter(jurisdiction=default_jurisdiction).exclude(
+            archive_jurisdiction = Jurisdiction.objects.get(id=archive_jurisdiction_id)
+            updated = RoadEvent.objects.filter(jurisdiction=archive_jurisdiction).exclude(
                 id__in=[rdev.id for rdev in created]).update(active=False)
             msg += " %s events archived." % updated
 

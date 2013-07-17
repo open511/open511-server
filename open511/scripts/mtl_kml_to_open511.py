@@ -7,8 +7,11 @@ to an Open511 XML file.
 
 import datetime
 import hashlib
+import os
 import re
 import sys
+import tempfile
+import urllib2
 
 from django.contrib.gis.gdal import DataSource
 from lxml import etree
@@ -18,6 +21,9 @@ import lxml.html
 from open511.utils.serialization import (geom_to_xml_element, get_base_open511_element)
 
 ids_seen = set()
+
+SOURCE_URL = 'http://depot.ville.montreal.qc.ca/info-travaux/data.kml'
+JURISDICTION_ID = 'montreal.scrapers.open511.org'
 
 
 def feature_to_open511_element(feature):
@@ -32,7 +38,7 @@ def feature_to_open511_element(feature):
         id += 'x'
     ids_seen.add(id)
 
-    elem = E.event(id=id)
+    elem = E.event()
 
     def set_val(tag, val):
         if val not in (None, ''):
@@ -45,6 +51,7 @@ def feature_to_open511_element(feature):
             return s
         return s.decode('utf8')
 
+    set_val('id', "%s/%s" % (JURISDICTION_ID, id))
     set_val('status', 'ACTIVE')
     set_val('event_type', 'CONSTRUCTION')
     set_val('severity', '9')
@@ -155,10 +162,20 @@ def _fr_string_to_date(s):
         int(match.group(1))
     )
 
+def download_file():
+    resp = urllib2.urlopen(SOURCE_URL)
+    descriptor, filename = tempfile.mkstemp(suffix='.kml')
+    f = os.fdopen(descriptor, 'w')
+    f.write(resp.read())
+    f.close()
+    return filename
 
 def main():
     filename = sys.argv[1]
+    dl = filename == 'download'
+    if dl: filename = download_file()
     el = kml_file_to_open511_element(filename)
+    if dl: os.unlink(filename)
     print etree.tostring(el, pretty_print=True)
 
 if __name__ == '__main__':

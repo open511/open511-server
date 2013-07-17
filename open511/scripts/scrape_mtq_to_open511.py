@@ -31,6 +31,7 @@ ALL_QUEBEC_BOUNDS = {
 BASE_LIST_URL = 'http://carte.quebec511.gouv.qc.ca/fr/Element.ashx'
 BASE_DETAIL_URL = 'http://carte.quebec511.gouv.qc.ca/fr/Fenetres/FenetreTravailRoutier.aspx?id='
 
+JURISDICTION_ID = 'mtq.scrapers.open511.org'
 
 def get_list_of_chantiers(action='EntraveMajeure', bounds=ALL_QUEBEC_BOUNDS):
     params = {
@@ -51,7 +52,7 @@ def get_list_of_chantiers(action='EntraveMajeure', bounds=ALL_QUEBEC_BOUNDS):
 
 def get_roadevent_from_summary(summary):
 
-    elem = E.event(id=summary['id'])
+    elem = E.event(E.id("%s/%s" % (JURISDICTION_ID, summary['id'])))
 
     elem.append(
         E.geography(
