@@ -37,9 +37,9 @@ class APIPaginator(object):
             * The object-level ``limit`` if specified.
             * ``settings.API_LIMIT_PER_PAGE`` if specified.
 
-        Default is 20 per page.
+        Default is 50 per page.
         """
-        settings_limit = getattr(settings, 'API_LIMIT_PER_PAGE', 20)
+        settings_limit = getattr(settings, 'API_LIMIT_PER_PAGE', 50)
 
         if 'limit' in self.request_data:
             limit = self.request_data['limit']
