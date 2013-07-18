@@ -174,11 +174,8 @@ class RoadEventListView(ModelListAPIView):
             raise PermissionDenied
         content = json.loads(request.body)
 
-        jurisdiction_url = content.pop('jurisdiction_url')
-        jurisdiction = Jurisdiction.objects.get(
-            Q(external_url=jurisdiction_url) |
-            Q(id=filter(None, jurisdiction_url.split('/'))[-1])
-        )
+        jurisdiction_id = content.pop('jurisdiction_id')
+        jurisdiction = Jurisdiction.objects.get(id=jurisdiction_id)
 
         if not jurisdiction.can_edit(request.user):
             raise PermissionDenied
