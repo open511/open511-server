@@ -36,9 +36,7 @@ class TestEndpointView(View):
     def _load_xml(self, xml):
         root = etree.fromstring(xml)
         assert root.tag == 'open511'
-        opts = {
-            'default_jurisdiction': Jurisdiction.objects.get(id='test.open511.org')
-        }
+        opts = {}
         if root.get(XML_LANG):
             opts['default_language'] = root.get(XML_LANG)
         for event in root.xpath('event'):
