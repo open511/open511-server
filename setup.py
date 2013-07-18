@@ -12,12 +12,13 @@ setup(
         'open511',
     ],
     install_requires = [
-        'lxml',
-        'webob',
+        'lxml>=2.3',
+        'WebOb>=1.2,<2',
         'python-dateutil>=1.5,<2.0',
-        'requests',
-        'pytz',
+        'requests>=1.2,<2',
+        'pytz>=2013b',
         'django-appconf==0.5',
+        'cssselect==0.8',
     ],
     entry_points = {
         'console_scripts': [
