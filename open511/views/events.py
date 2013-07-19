@@ -6,7 +6,7 @@ from django.contrib.gis.geos import Polygon
 from django.contrib.gis.measure import Distance
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
@@ -193,6 +193,12 @@ class RoadEventListView(ModelListAPIView):
 class RoadEventView(APIView):
 
     model = RoadEvent
+
+    def post(self, request, jurisdiction_id, id):
+        if request.META.get('HTTP_X_HTTP_METHOD_OVERRIDE') == 'PATCH':
+            return self.patch(request, jurisdiction_id, id)
+
+        return HttpResponseNotAllowed(['GET', 'PATCH', 'DELETE'])
 
     def patch(self, request, jurisdiction_id, id):
         # FIXME security, abstraction
