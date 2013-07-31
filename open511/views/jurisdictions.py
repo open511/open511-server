@@ -32,7 +32,7 @@ class JurisdictionGeographyView(APIView):
 
     def get(self, request, id):
         jur_geo = get_object_or_404(JurisdictionGeography, jurisdiction__id=id)
-        return Resource(jur_geo.to_full_xml_element())
+        return Resource(jur_geo.to_full_xml_element(), json_include_root_tag=True)
 
 list_jurisdictions = JurisdictionListView.as_view()
 jurisdiction = JurisdictionView.as_view()

@@ -28,7 +28,7 @@ class DiscoveryView(APIView):
         jurisdictions = E.jurisdictions(*[
             E.jurisdiction(
                 *([E.id(jur.id)] + jur.xml_elem.xpath('name') + 
-                [make_link('self', jur.get_absolute_url())])
+                [make_link('self', jur.url)])
             ) for jur in Jurisdiction.objects.all()
         ])
 

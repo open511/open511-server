@@ -138,6 +138,8 @@ class APIView(View):
         resp = HttpResponse(content_type='application/json')
         if hasattr(result, 'resource'):
             resp_content = xml_to_json(result.resource)
+            if getattr(result, 'json_include_root_tag', False):
+                resp_content = {result.resource.tag: resp_content}
         elif hasattr(result, 'resource_list'):
             resp_content = {
                 'content': [xml_to_json(r) for r in result.resource_list]
@@ -247,8 +249,9 @@ class ModelListAPIView(APIView):
 
 class Resource(object):
 
-    def __init__(self, resource):
+    def __init__(self, resource, json_include_root_tag=False):
         self.resource = resource
+        self.json_include_root_tag = json_include_root_tag
 
 
 class ResourceList(object):
