@@ -122,6 +122,11 @@ class Schedule(object):
                 return True
         return False
 
+    def has_remaining_periods(self):
+        now = timezone.now().astimezone(self.timezone)
+        periods = self.to_periods(range_start=now.date(), infinite_limit=2)
+        return any(p for p in periods if p.end > now)
+
     def to_periods(self, infinite_limit=None,
             range_start=datetime.date.min, range_end=datetime.date.max):
         """A list of datetime tuples representing all the periods for which

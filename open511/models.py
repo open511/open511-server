@@ -115,7 +115,7 @@ class JurisdictionManager(models.GeoManager):
 
     def get_default_timezone_for(self, internal_id):
         # FIXME cache
-        return self.get(pk=id).default_timezone
+        return self.get(pk=internal_id).default_timezone
 
 
 class Jurisdiction(_Open511Model, XMLModelMixin):
@@ -419,7 +419,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     @property
     def severity(self):
-        s = self.xpath('severity/text()')
+        s = self.xml_elem.xpath('severity/text()')
         return s[0] if s else None
 
     @property
@@ -429,6 +429,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             raise ValidationError("Schedule is required")
         return Schedule(sched,
             default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
+
+    def has_remaining_periods(self):
+        return self.schedule.has_remaining_periods()
+    has_remaining_periods.boolean = True
 
     def auto_label_areas(self):
         """Based on geometry, include any matching Areas we know about."""
