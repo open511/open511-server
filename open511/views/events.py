@@ -1,6 +1,7 @@
 import datetime
 from functools import partial
 import json
+import operator
 
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.measure import Distance
@@ -29,9 +30,14 @@ def filter_status(qs, value):
         return qs.none()
 
 
-def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text'):
+def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text', allow_list=True):
+    if allow_list:
+        if isinstance(value, basestring):
+            value = value.split(',')
+    else:
+        value = [value]
     return qs.extra(
-        where=['(xpath(%s, {0}))::{1}[] @> ARRAY[%s]'.format(xml_field, typecast)],
+        where=['(xpath(%s, {0}))::{1}[] && %s'.format(xml_field, typecast)],
         params=[xpath, value]
     )
 
@@ -67,8 +73,11 @@ def filter_jurisdiction(qs, value):
     # - A full http:// URL to the external jurisdiction
     # - Some kind of relative URL: /api/jurisdictions/mtq
     # - Just the ID: ville.montreal.qc.ca
-    return qs.filter(Q(jurisdiction__external_url=value) | 
-        Q(jurisdiction__id=value.rstrip('/').split('/')[-1]))
+    filters = []
+    for jur in value.split(','):
+        filters.append(Q(jurisdiction__external_url=jur))
+        filters.append(Q(jurisdiction__id=jur.rstrip('/').split('/')[-1]))
+    return qs.filter(reduce(operator.or_, filters))
 
 FILTER_OPERATORS = [
     ('<=', 'lte'),
@@ -96,7 +105,7 @@ class RoadEventListView(ModelListAPIView):
         'updated': partial(filter_datetime, 'updated'),
         'bbox': filter_bbox,
         'jurisdiction': filter_jurisdiction,
-        'severity': partial(filter_db, 'severity', allow_operators=True),
+        'severity': partial(filter_xpath, 'severity/text()'),
         'event_subtype': partial(filter_xpath, 'event_subtypes/event_subtype/text()'),
         'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),

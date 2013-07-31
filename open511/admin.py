@@ -46,7 +46,7 @@ class BaseRoadEventForm(forms.BaseModelForm):
 
 class RoadEventAdmin(admin.ModelAdmin):
     list_display = ['headline', 'jurisdiction', 'severity', 'active']
-    list_filter = ['jurisdiction', 'active', 'severity']
+    list_filter = ['jurisdiction', 'active']
     search_fields = ['xml_data']
 
 
