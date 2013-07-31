@@ -54,7 +54,7 @@ def feature_to_open511_element(feature):
     set_val('id', "%s/%s" % (JURISDICTION_ID, id))
     set_val('status', 'ACTIVE')
     set_val('event_type', 'CONSTRUCTION')
-    set_val('severity', '9')
+    set_val('severity', 'UNKNOWN')
 
     set_val('headline', maybe_decode(feature.get('Name')))
 
