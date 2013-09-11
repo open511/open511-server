@@ -1,16 +1,17 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name = "open511",
     version = "0.1",
     url='',
     license = "",
-    packages = [
-        'open511',
-    ],
+    packages = find_packages(),
+    package_data={
+        '': ['*.rng', '*.schematron']
+    },
     install_requires = [
         'lxml>=2.3',
         'WebOb>=1.2,<2',
