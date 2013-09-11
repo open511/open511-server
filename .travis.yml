@@ -17,5 +17,4 @@ before_script:
     - cd travis-ci
     - python manage.py syncdb --noinput --all
 script:
-    - cd travis-ci
     - python manage.py test open511
