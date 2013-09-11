@@ -14,5 +14,8 @@ before_script:
     - psql -U postgres -d template_postgis -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
     - createdb -U postgres -T template_postgis open511
     - python setup.py install
-    - python travis-ci/manage.py syncdb --noinput --all
-script: "python travis-ci/manage.py test open511"
+    - cd travis-ci
+    - python manage.py syncdb --noinput --all
+script:
+    - cd travis-ci
+    - python manage.py test open511
