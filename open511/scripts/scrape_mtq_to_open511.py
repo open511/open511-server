@@ -97,7 +97,7 @@ def get_roadevent_from_summary(summary):
             sked.append(E.start_date(unicode(_str_to_date(start_date))))
         if end_date:
             sked.append(E.end_date(unicode(_str_to_date(end_date))))
-        elem.append(sked)
+        elem.append(E.schedules(sked))
 
     return elem
 

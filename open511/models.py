@@ -424,11 +424,15 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
     @property
     def schedule(self):
-        sched = self.xml_elem.find('schedule')
+        sched = self.xml_elem.find('schedules')
         if sched is None:
             raise ValidationError("Schedule is required")
-        return Schedule(sched,
-            default_timezone=Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id))
+        tzname = self.xml_elem.findtext('timezone')
+        if tzname:
+            timezone = pytz.timezone(tzname)
+        else:
+            timezone = Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id)
+        return Schedule(sched, timezone)
 
     def has_remaining_periods(self):
         return self.schedule.has_remaining_periods()

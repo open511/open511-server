@@ -102,7 +102,7 @@ def feature_to_open511_element(feature):
                 sked = E.schedule(E.start_date(unicode(start_date)))
                 if end_date:
                     sked.append(E.end_date(unicode(end_date)))
-                elem.append(sked)
+                elem.append(E.schedules(sked))
         except IndexError:
             pass
 
