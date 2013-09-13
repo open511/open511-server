@@ -114,6 +114,9 @@ def json_link_to_xml(val, rel='related'):
         tag.set('href', val)
     return tag
 
+def _maybe_intify(t):
+    return int(t) if hasattr(t, 'isdigit') and t.isdigit() else t
+
 def xml_to_json(root):
     j = {}
 
@@ -121,7 +124,7 @@ def xml_to_json(root):
         root = E.dummy(*root)
 
     if len(root) == 0:
-        return root.text
+        return _maybe_intify(root.text)
 
     if len(root) == 1 and root[0].tag.startswith('{' + GML_NS):
         return gml_to_geojson(root[0])
@@ -151,7 +154,7 @@ def xml_to_json(root):
             else:
                 j[name] = xml_to_json(elem)
         else:
-            j[name] = elem.text
+            j[name] = _maybe_intify(elem.text)
 
     return j
 
