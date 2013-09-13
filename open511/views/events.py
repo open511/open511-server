@@ -107,7 +107,7 @@ class RoadEventListView(ModelListAPIView):
         'jurisdiction': filter_jurisdiction,
         'severity': partial(filter_xpath, 'severity/text()'),
         'event_subtype': partial(filter_xpath, 'event_subtypes/event_subtype/text()'),
-        'road_name': partial(filter_xpath, 'roads/road/road_name/text()'),
+        'road_name': partial(filter_xpath, 'roads/road/name/text()'),
         'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(filter_db, 'id'),
         'area_id': partial(filter_xpath, 'areas/area/id/text()'),
