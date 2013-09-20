@@ -11,6 +11,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.translation import ugettext_lazy as _
 
+import open511_validator
+
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 from open511.utils.geojson import gml_to_geojson
 
@@ -20,7 +22,7 @@ GML_NS = 'http://www.opengis.net/gml'
 
 NSMAP = {
     'gml': GML_NS,
-    'protected': 'http://open511.org/internal-namespace'
+    'protected': 'http://open511.org/namespaces/internal-field'
 }
 
 try:
@@ -325,8 +327,4 @@ class XMLModelMixin(object):
         ])
         doc.set('version', 'v0')
         # Then run it through schema
-        for schema_name, schema in (('RELAX NG', RELAXNG_SCHEMA), ('Schematron', SCHEMATRON_DOC)):
-            try:
-                schema.assertValid(doc)
-            except etree.DocumentInvalid as e:
-                raise ValidationError(u"%s check failed: %s\n\nDOCUMENT\n%s" % (schema_name, e, etree.tostring(doc, pretty_print=True)))
+        open511_validator.validate(doc)

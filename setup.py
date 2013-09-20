@@ -1,6 +1,3 @@
-from distribute_setup import use_setuptools
-use_setuptools()
-
 from setuptools import setup, find_packages
 
 setup(
@@ -13,6 +10,7 @@ setup(
         '': ['*.rng', '*.schematron']
     },
     install_requires = [
+        'open511-validator',
         'lxml>=2.3',
         'WebOb>=1.2,<2',
         'python-dateutil>=1.5,<2.0',

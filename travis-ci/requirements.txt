@@ -1,5 +1,6 @@
 Django>=1.5,<1.6
 South>=0.8.1,<0.9
 psycopg2
+-e git+https://github.com/opennorth/open511-validator.git#egg=open511-validator
 -e git+http://github.com/opennorth/open511-apitests.git#egg=open511_api_tests
 django-extensions
