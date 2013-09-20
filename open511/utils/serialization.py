@@ -1,14 +1,13 @@
 from collections import namedtuple
 from copy import deepcopy
-import os
 import re
 
-from lxml import etree, isoschematron
+from lxml import etree
 from lxml.builder import E
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
-from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
 import open511_validator
@@ -29,10 +28,6 @@ try:
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
 except (ImportError, ImproperlyConfigured):
     DEFAULT_LANGUAGE = 'en'
-
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-RELAXNG_SCHEMA = etree.RelaxNG(etree.parse(os.path.join(CURRENT_DIR, 'open511.rng')))
-SCHEMATRON_DOC = isoschematron.Schematron(etree.parse(os.path.join(CURRENT_DIR, 'open511.schematron')))
 
 etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)
