@@ -15,10 +15,6 @@ urlpatterns = patterns('open511.views',
 )
 
 if settings.DEBUG:
-    urlpatterns += patterns('',
-        url(r'^debug/xml_to_json/?$', 'open511.views.debug.x2j'),
-    )
-
     if settings.OPEN511_ENABLE_TEST_ENDPOINT:
         urlpatterns += patterns('',
             url(r'^_test/$', 'open511.views.test_endpoint.test_endpoint', name='open511_api_test_endpoint'),

@@ -14,53 +14,39 @@ from django.views.generic import View
 from lxml import etree
 from lxml.builder import E
 
+from open511_validator.converter import xml_to_json
+
 from open511.utils.exceptions import BadRequest
 from open511.utils.http import accept_from_request, accept_language_from_request
 from open511.utils.pagination import APIPaginator
-from open511.utils.serialization import xml_to_json, get_base_open511_element, make_link
-
-FORMAT_TO_MIMETYPE = {
-    'xml': 'application/xml',
-    'json': 'application/json'
-}
-
+from open511.utils.serialization import get_base_open511_element, make_link
 
 class APIView(View):
 
     allow_jsonp = True
 
-    potential_formats = ['xml', 'json']
+    potential_content_types = set(('application/xml', 'application/json', 'text/html'))
     potential_versions = ['v0']
     unauthenticated_methods = ('GET', 'HEAD', 'OPTIONS')
     http_method_names = View.http_method_names + ['patch']
 
     include_up_link = True
 
-    def list_available_media_types(self, include_standard=True):
-        types = {}
-        if include_standard:
-            default_version = self.potential_versions[0]
-            for f in self.potential_formats:
-                types[FORMAT_TO_MIMETYPE[f]] = (default_version, f)
-            types['text/html'] = (default_version, 'html')
-        for v in self.potential_versions:
-            base = 'application/vnd.open511.' + v
-            for f in self.potential_formats:
-                types[base + '+' + f] = (v, f)
-        return types
-
     def determine_response_format(self, request):
         """Given a request, returns a tuple of (version, format),
         where format is e.g. 'xml' or 'json'."""
         accept = accept_from_request(request)
-        if not getattr(self, '_available_types', None):
-            self._available_types = self.list_available_media_types()
-        best_type = accept.best_match(self._available_types.keys(),
-            default_match='application/xml')
-        return self._available_types[best_type]
+        return accept.best_match(self.potential_content_types)
+
+    def determine_response_version(self, request):
+        if 'version' in request.GET and request.GET['version'] in self.potential_versions:
+            return request.GET['version']
+        elif 'HTTP_OPEN511_VERSION' in request.META and request.META['HTTP_OPEN511_VERSION'] in self.potential_versions:
+            return request.META['HTTP_OPEN511_VERSION']
+        return self.potential_versions[0]
 
     def determine_accept_language(self, request):
-        if request.response_format == 'xml':
+        if request.response_format == 'application/xml':
             # If we're outputting XML, don't prune languages by default
             return accept_language_from_request(request, default=None)
         else:
@@ -74,13 +60,15 @@ class APIView(View):
             return resp
 
         request.pretty_print = bool(request.GET.get('indent'))
-        request.response_version, request.response_format = self.determine_response_format(request)
-        request.html_response = (request.response_format == 'html')
+        request.response_format = self.determine_response_format(request)
+        request.response_version = self.determine_response_version(request)
+
+        request.html_response = (request.response_format == 'text/html')
         if request.html_response:
             if request.COOKIES.get('open511_browser_format') == 'json':
-                request.response_format = 'json'
+                request.response_format = 'application/json'
             else:
-                request.response_format = 'xml'
+                request.response_format = 'application/xml'
             request.pretty_print = True
 
         request.accept_language = self.determine_accept_language(request)
@@ -93,18 +81,15 @@ class APIView(View):
         if isinstance(result, HttpResponse):
             return result
 
-        if request.response_format == 'xml':
+        if request.response_format == 'application/xml':
             resp = self.render_xml(request, result)
-        elif request.response_format == 'json':
+        elif request.response_format == 'application/json':
             resp = self.render_json(request, result)
 
         if request.html_response:
             resp = self.render_api_browser(request, resp.content)
 
         # Set response headers
-
-        resp['Open511-Media-Type'] = 'application/vnd.open511.%s+%s' % (request.response_version, request.response_format)
-
         if 'HTTP_ORIGIN' in request.META and request.method == 'GET':
             # Allow cross-domain requests
             resp['Access-Control-Allow-Origin'] = '*'
@@ -114,46 +99,36 @@ class APIView(View):
 
         return resp
 
-    def render_xml(self, request, result):
+    def get_xml_doc(self, request, result):
         base = get_base_open511_element(base=settings.OPEN511_BASE_URL)
-        if hasattr(result, 'resource'):
-            if isinstance(result.resource, (list, tuple)):
-                base.extend(result.resource)
-            else:
-                base.append(result.resource)
-        elif hasattr(result, 'resource_list'):
-            base.extend(result.resource_list)
-            if getattr(result, 'pagination', None):
-                base.append(result.pagination_to_xml())
+        if isinstance(result.resource, (list, tuple)):
+            base.extend(result.resource)
+        else:
+            base.append(result.resource)
+        if getattr(result, 'pagination', None):
+            base.append(result.pagination_to_xml())
         metadata = self.get_response_metadata(request)
         base.set('version', metadata['version'])
         base.append(make_link('self', metadata['url']))
         if 'up_url' in metadata:
             base.append(make_link('up', metadata['up_url']))
+        return base
+
+    def render_xml(self, request, result):
         return HttpResponse(
-            etree.tostring(base, pretty_print=request.pretty_print),
+            etree.tostring(self.get_xml_doc(request, result), pretty_print=request.pretty_print),
             content_type='application/xml')
 
     def render_json(self, request, result):
+        xml_doc = self.get_xml_doc(request, result)
+        json_obj = xml_to_json(xml_doc)
+
         resp = HttpResponse(content_type='application/json')
-        if hasattr(result, 'resource'):
-            resp_content = xml_to_json(result.resource)
-            if getattr(result, 'json_include_root_tag', False):
-                resp_content = {result.resource.tag: resp_content}
-        elif hasattr(result, 'resource_list'):
-            resp_content = {
-                'content': [xml_to_json(r) for r in result.resource_list]
-            }
-            if getattr(result, 'pagination', None):
-                resp_content['pagination'] = result.pagination
-        resp_content.setdefault('meta', {}).update(self.get_response_metadata(request))
-        #if 'url' in resp_content['meta']:
-        #    del resp_content['meta']['url']
         callback = ''
         if self.allow_jsonp and 'callback' in request.GET:
             callback = re.sub(r'[^a-zA-Z0-9_]', '', request.GET['callback'])
             resp.write(callback + '(')
-        json.dump(resp_content, resp,
+        json.dump(json_obj, resp,
             indent=4 if request.pretty_print else None)
         if callback:
             resp.write(');')
@@ -166,17 +141,17 @@ class APIView(View):
         response_content = response_content.replace('&amp;amp;', '&amp;')
         
         # URLify links
-        if request.response_format == 'xml':
+        if request.response_format == 'application/xml':
             response_content = re.sub(r'href=&quot;(.+?)&quot;',
                 r'href=&quot;<a href="\1">\1</a>&quot;',
                 response_content)
-        elif request.response_format == 'json':
+        elif request.response_format == 'application/json':
             response_content = re.sub(r'(&quot;|_)url&quot;: &quot;(\S+)(&quot;,?\s*\n)',
                 r'\1url&quot;: &quot;<a href="\2">\2</a>\3',
                 response_content)
 
         ctx = {
-            'response_format': request.response_format,
+            'response_format': request.response_format.split('/')[1],
             'response_content': mark_safe(response_content),
             'get_params': request.GET.items(),
         }
@@ -217,6 +192,9 @@ class APIView(View):
 class ModelListAPIView(APIView):
 
     # Subclasses should implement:
+    #
+    # model = ModelClass
+    #
     # def get_qs(self, request, any_kwargs_from_url):
     #    returns a QuerySet
     #
@@ -238,10 +216,14 @@ class ModelListAPIView(APIView):
 
         objects, pagination = paginator.page()
 
-        return ResourceList(
-            [self.object_to_xml(request, o) for o in objects],
-            pagination
-        )
+        if not getattr(self, 'resource_name_plural', None):
+            self.resource_name_plural = self.model._meta.verbose_name_plural.lower().replace(' ', '_')
+
+        xml_objects = [self.object_to_xml(request, o) for o in objects]
+        el = etree.Element(self.resource_name_plural)
+        el.extend(xml_objects)
+
+        return Resource(el, pagination)
 
     def post_filter(self, request, qs):
         return qs
@@ -249,25 +231,18 @@ class ModelListAPIView(APIView):
 
 class Resource(object):
 
-    def __init__(self, resource, json_include_root_tag=False):
+    def __init__(self, resource, pagination=None):
         self.resource = resource
-        self.json_include_root_tag = json_include_root_tag
-
-
-class ResourceList(object):
-
-    def __init__(self, resource_list, pagination=None):
-        self.resource_list = resource_list
         self.pagination = pagination
 
     def pagination_to_xml(self):
+        if not self.pagination:
+            return None
         el = E.pagination(
             E.offset(unicode(self.pagination['offset'])),
-            # E.limit(unicode(self.pagination['limit'])),
         )
         for linkname in ['previous_url', 'next_url']:
             url = self.pagination.get(linkname)
             if url:
                 el.append(make_link(linkname.replace('_url', ''), url))
         return el
-

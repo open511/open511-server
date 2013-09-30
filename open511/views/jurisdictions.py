@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404
 
+from lxml.builder import E
+
 from open511.models import Jurisdiction, JurisdictionGeography
 from open511.utils.views import ModelListAPIView, APIView, Resource
 
@@ -23,7 +25,7 @@ class JurisdictionView(APIView):
 
     def get(self, request, id):
         jur = get_object_or_404(Jurisdiction, id=id)
-        return Resource(jur.to_full_xml_element(accept_language=request.accept_language))
+        return Resource(E.jurisdictions(jur.to_full_xml_element(accept_language=request.accept_language)))
 
 
 class JurisdictionGeographyView(APIView):
@@ -32,7 +34,7 @@ class JurisdictionGeographyView(APIView):
 
     def get(self, request, id):
         jur_geo = get_object_or_404(JurisdictionGeography, jurisdiction__id=id)
-        return Resource(jur_geo.to_full_xml_element(), json_include_root_tag=True)
+        return Resource(E.geographies(jur_geo.to_full_xml_element()))
 
 list_jurisdictions = JurisdictionListView.as_view()
 jurisdiction = JurisdictionView.as_view()

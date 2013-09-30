@@ -3,7 +3,6 @@ from copy import deepcopy
 import re
 
 from lxml import etree
-from lxml.builder import E
 
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
@@ -11,9 +10,9 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
 import open511_validator
+from open511_validator.converter import pluralize
 
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
-from open511.utils.geojson import gml_to_geojson
 
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
@@ -88,104 +87,6 @@ def make_link(rel, href):
     l.set('rel', rel)
     l.set('href', href)
     return l
-
-def xml_link_to_json(link, to_dict=False):
-    if to_dict:
-        d = {'url': link.get('href')}
-        for attr in ('type', 'title', 'length'):
-            if link.get(attr):
-                d[attr] = link.get(attr)
-        return d
-    else:
-        return link.get('href')
-
-def json_link_to_xml(val, rel='related'):
-    tag = etree.Element('link')
-    tag.set('rel', rel)
-    if hasattr(val, 'get') and 'url' in val:
-        tag.set('href', val['url'])
-        for attr in ('type', 'title', 'length'):
-            if val.get(attr):
-                tag.set(attr, unicode(val[attr]))
-    else:
-        tag.set('href', val)
-    return tag
-
-def _maybe_intify(t):
-    return int(t) if hasattr(t, 'isdigit') and t.isdigit() else t
-
-def xml_to_json(root):
-    j = {}
-
-    if isinstance(root, (list, tuple)):
-        root = E.dummy(*root)
-
-    if len(root) == 0:
-        return _maybe_intify(root.text)
-
-    if len(root) == 1 and root[0].tag.startswith('{' + GML_NS):
-        return gml_to_geojson(root[0])
-
-    for elem in root:
-        name = elem.tag
-        if name == 'link' and elem.get('rel'):
-            name = elem.get('rel') + '_url'
-            if name == 'self_url':
-                name = 'url'
-        elif name.startswith('{' + NSMAP['protected']):
-            name = '!' + name[name.index('}') + 1:] 
-        elif name[0] == '{':
-            # Namespace!
-            name = '+' + name[name.index('}') + 1:]
-
-        if name in j:
-            continue  # duplicate
-        elif elem.tag == 'link' and not elem.text:
-            j[name] = elem.get('href')
-        elif len(elem):
-            if name in ('attachments', 'grouped_events'):
-                j[name] = [xml_link_to_json(child, to_dict=(name == 'attachments')) for child in elem]
-            elif all((name == child.tag + 's' for child in elem)):
-                # <something><somethings> serializes to a JSON array
-                j[name] = [xml_to_json(child) for child in elem]
-            else:
-                j[name] = xml_to_json(elem)
-        else:
-            j[name] = _maybe_intify(elem.text)
-
-    return j
-
-
-def json_to_xml(json_obj, root):
-    if isinstance(root, basestring):
-        if root.startswith('!'):
-            root = etree.Element('{%s}%s' % (NSMAP['protected'], root[1:]))
-        else:
-            root = etree.Element(root)
-    if root.tag in ('attachments', 'grouped_events'):
-        for link in json_obj:
-            root.append(json_link_to_xml(link))
-    elif isinstance(json_obj, basestring):
-        root.text = json_obj
-    elif isinstance(json_obj, dict):
-        for key, val in json_obj.items():
-            el = json_to_xml(val, key)
-            if el is not None:
-                root.append(el)
-    elif isinstance(json_obj, list):
-        tag_name = root.tag
-        if tag_name.endswith('s'):
-            tag_name = tag_name[:-1]
-        for val in json_obj:
-            el = json_to_xml(val, tag_name)
-            if el is not None:
-                root.append(el)
-    elif json_obj is None:
-        return None
-    else:
-        raise NotImplementedError
-    return root
-
 
 class CannotChooseLanguageError(Exception):
     pass
@@ -312,10 +213,10 @@ class XMLModelMixin(object):
     def validate_xml(self):
         # First, create a full XML doc to validate
         doc = get_base_open511_element()
-        if hasattr(self, 'get_validation_xml'):
-            doc.append(self.get_validation_xml())
-        else:
-            doc.append(self.xml_elem)
+        el = self.get_validation_xml() if hasattr(self, 'get_validation_xml') else self.xml_elem
+        container = etree.Element(pluralize(el.tag))
+        container.append(el)
+        doc.append(container)
         doc.extend([
             make_link('self', '/'),
             make_link('up', '/')

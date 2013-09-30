@@ -6,9 +6,6 @@ setup(
     url='',
     license = "",
     packages = find_packages(),
-    package_data={
-        '': ['*.rng', '*.schematron']
-    },
     install_requires = [
         'open511-validator',
         'lxml>=2.3',

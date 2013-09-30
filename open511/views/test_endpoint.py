@@ -39,7 +39,7 @@ class TestEndpointView(View):
         opts = {}
         if root.get(XML_LANG):
             opts['default_language'] = root.get(XML_LANG)
-        for event in root.xpath('event'):
+        for event in root.xpath('events/event'):
             RoadEvent.objects.update_or_create_from_xml(event, **opts)
 
 test_endpoint = TestEndpointView.as_view()

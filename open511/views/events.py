@@ -11,6 +11,7 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404, HttpRespons
 from django.shortcuts import get_object_or_404
 
 import dateutil.parser
+from lxml.builder import E
 from pytz import utc
 
 from open511.models import RoadEvent, Jurisdiction, SearchGeometry
@@ -44,8 +45,8 @@ def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text', allow_
 
 def filter_db(fieldname, qs, value, allow_operators=False):
     if allow_operators:
-        operator, value = _parse_operator_from_value(value)
-        fieldname = fieldname + '__' + operator
+        op, value = _parse_operator_from_value(value)
+        fieldname = fieldname + '__' + op
     return qs.filter(**{fieldname: value})
 
 
@@ -97,6 +98,8 @@ class RoadEventListView(ModelListAPIView):
     allow_jsonp = True
 
     model = RoadEvent
+
+    resource_name_plural = 'events'
 
     filters = {
         'status': filter_status,
@@ -243,10 +246,10 @@ class RoadEventView(APIView):
             rdev = base_qs.get(id=id)
         except RoadEvent.DoesNotExist:
             raise Http404
-        return Resource(rdev.to_full_xml_element(
+        return Resource(E.events(rdev.to_full_xml_element(
             accept_language=request.accept_language,
             remove_internal_elements=not can(request, 'view_internal')
-        ))
+        )))
 
 list_roadevents = RoadEventListView.as_view()
 roadevent = RoadEventView.as_view()

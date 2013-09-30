@@ -19,15 +19,16 @@ from lxml.builder import E
 import requests
 import pytz
 
+from open511_validator.converter import json_struct_to_xml, geojson_to_gml
+
 from open511.fields import XMLField
 from open511.utils import is_hex
 from open511.utils.cache import memoize_method
 from open511.utils.calendar import Schedule
-from open511.utils.geojson import geojson_to_ewkt
 from open511.utils.postgis import gml_to_ewkt
 from open511.utils.serialization import (
     geom_to_xml_element, XML_LANG, XMLModelMixin, NSMAP,
-    json_to_xml, make_link
+    make_link
 )
 
 
@@ -36,8 +37,8 @@ def _now():
 
 class _Open511Model(models.Model):
 
-    created = models.DateTimeField(default=_now)
-    updated = models.DateTimeField(default=_now)
+    created = models.DateTimeField(default=_now, db_index=True)
+    updated = models.DateTimeField(default=_now, db_index=True)
 
     @property
     def url(self):
@@ -58,6 +59,7 @@ class _Open511Model(models.Model):
 
     class Meta(object):
         abstract = True
+        ordering = ['created']
 
 
 class JurisdictionManager(models.GeoManager):
@@ -399,9 +401,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             update_el.text = val
         elif key == 'geography':
             if 'opengis' in getattr(val, 'tag', ''):
-                wkt = gml_to_ewkt(etree.tostring(val))
+                gml = val
             else:
-                wkt = geojson_to_ewkt(val)
+                gml = geojson_to_gml(val)
+            wkt = gml_to_ewkt(etree.tostring(gml))
             self.geom = geos_geom_from_string(wkt)
             update_el.clear()
             update_el.append(geom_to_xml_element(self.geom))
@@ -409,7 +412,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             if not val:
                 update_el.getparent().remove(update_el)
             update_el.clear()
-            json_to_xml(val, update_el)
+            json_struct_to_xml(val, update_el)
         else:
             raise NotImplementedError
 
