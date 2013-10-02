@@ -59,7 +59,6 @@ class _Open511Model(models.Model):
 
     class Meta(object):
         abstract = True
-        ordering = ['created']
 
 
 class JurisdictionManager(models.GeoManager):
@@ -290,6 +289,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
         unique_together = [
             ('id', 'jurisdiction')
         ]
+        ordering = ('internal_id',)
 
     def __init__(self, *args, **kwargs):
         lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
