@@ -33,10 +33,12 @@ class Command(BaseCommand):
 
         opts = {}
         if options['archive']:
-            jurisdiction_ids = set(eid.split('/')[0] for eid in root.xpath('event/id/text()'))
+            jurisdiction_ids = set(eid.split('/')[0] for eid in root.xpath('events/event/id/text()'))
             if len(jurisdiction_ids) > 1:
                 raise ImproperlyConfigured(
                     "To use the archive option, all events must belong to the same jurisdiction.")
+            if not jurisdiction_ids:
+                raise Exception("Are there events in this file?")
             archive_jurisdiction_id = jurisdiction_ids.pop()
 
         if root.get(XML_LANG):
