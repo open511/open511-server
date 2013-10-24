@@ -107,12 +107,14 @@ def main():
     logging.basicConfig()
 
     base = get_base_open511_element(lang='fr')
+    events = E.events()
 
     for summary in chain(
             get_list_of_chantiers(action='EntraveMajeure'),
             get_list_of_chantiers(action='EntraveMineure')):
         rdev = get_roadevent_from_summary(summary)
-        base.append(rdev)
+        events.append(rdev)
+    base.append(events)
 
     print etree.tostring(base, pretty_print=True)
 

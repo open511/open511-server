@@ -118,9 +118,11 @@ def kml_file_to_open511_element(filename):
     for the top-level <open511> element."""
     ds = DataSource(filename)
     base_element = get_base_open511_element(lang='fr')
+    events = E.events
     for layer in ds:
         for feature in layer:
-            base_element.append(feature_to_open511_element(feature))
+            events.append(feature_to_open511_element(feature))
+    base_element.append(events)
     return base_element
 
 
