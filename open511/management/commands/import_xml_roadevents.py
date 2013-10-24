@@ -9,6 +9,8 @@ from django.core.management.base import BaseCommand
 
 from lxml import etree
 
+from open511_validator import Open511ValidationError
+
 from open511.models import RoadEvent, Jurisdiction
 from open511.utils.serialization import XML_LANG, XML_BASE
 
@@ -54,7 +56,7 @@ class Command(BaseCommand):
 
                 created.append(rdev)
 
-            except (ValueError, ValidationError) as e:
+            except (ValueError, ValidationError, Open511ValidationError) as e:
                 logger.error("%s importing %s: %s" % (e.__class__.__name__, event.get('id'), e))
 
         msg = "%s entries imported." % len(created)
