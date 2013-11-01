@@ -31,7 +31,7 @@ def filter_status(qs, value):
         return qs.none()
 
 
-def filter_xpath(xpath, qs, value, xml_field='xml_data', typecast='text', allow_list=True):
+def filter_xpath(xpath, qs, value, xml_field='open511_roadevent.xml_data', typecast='text', allow_list=True):
     if allow_list:
         if isinstance(value, basestring):
             value = value.split(',')
