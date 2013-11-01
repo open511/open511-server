@@ -63,7 +63,7 @@ class Command(BaseCommand):
 
         if options['archive']:
             archive_jurisdiction = Jurisdiction.objects.get(id=archive_jurisdiction_id)
-            updated = RoadEvent.objects.filter(jurisdiction=archive_jurisdiction).exclude(
+            updated = RoadEvent.objects.filter(jurisdiction=archive_jurisdiction, active=True).exclude(
                 id__in=[rdev.id for rdev in created]).update(active=False)
             msg += " %s events archived." % updated
 
