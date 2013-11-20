@@ -200,19 +200,20 @@ class JurisdictionGeography(models.Model):
         return E.geography(geom_to_xml_element(self.geom))
 
 
-class RoadEventManager(models.GeoManager):
+class _Open511CommonManager(models.GeoManager):
 
-    def update_or_create_from_xml(self, event,
-            default_language=settings.LANGUAGE_CODE, base_url=''):
+    def update_or_create_from_xml(self, el,
+            default_language=settings.LANGUAGE_CODE, base_url='',
+            save=True):
 
-        event = deepcopy(event)
+        el = deepcopy(el)
 
-        jurisdiction_id, event_id = event.findtext('id').split('/')
-        event.remove(event.xpath('id')[0])
+        jurisdiction_id, obj_id = el.findtext('id').split('/')
+        el.remove(el.xpath('id')[0])
 
-        external_jurisdiction = event.xpath('link[@rel="jurisdiction"]')
+        external_jurisdiction = el.xpath('link[@rel="jurisdiction"]')
         if external_jurisdiction:
-            event.remove(external_jurisdiction[0])
+            el.remove(external_jurisdiction[0])
 
         try:
             jurisdiction = Jurisdiction.objects.get(id=jurisdiction_id)
@@ -222,91 +223,66 @@ class RoadEventManager(models.GeoManager):
             jurisdiction = Jurisdiction.objects.get_or_create_from_url(
                 urljoin(base_url, external_jurisdiction[0].get('href')))
 
-        self_link = event.xpath('link[@rel="self"]')
+        self_link = el.xpath('link[@rel="self"]')
         external_url = urljoin(base_url, self_link[0].get('href')) if self_link else ''
 
         try:
-            rdev = self.get(id=event_id, jurisdiction=jurisdiction)
-        except RoadEvent.DoesNotExist:
-            rdev = self.model(id=event_id, jurisdiction=jurisdiction, external_url=external_url)
+            obj = self.get(id=obj_id, jurisdiction=jurisdiction)
+        except ObjectDoesNotExist:
+            obj = self.model(id=obj_id, jurisdiction=jurisdiction, external_url=external_url)
 
         # Extract the geometry
-        geometry = event.xpath('geography')[0]
+        geometry = el.xpath('geography')[0]
         gml = etree.tostring(geometry[0])
         ewkt = gml_to_ewkt(gml, force_2D=True)
-        rdev.geom = geos_geom_from_string(ewkt)
+        obj.geom = geos_geom_from_string(ewkt)
 
         # And regenerate the GML so it's consistent with the PostGIS representation
-        event.remove(geometry)
-        event.append(E.geography(geom_to_xml_element(rdev.geom)))
-
-        status = event.xpath('status')
-        if status:
-            if status[0].text.lower() == 'archived':
-                rdev.active = False
-
-        try:
-            created = event.xpath('created/text()')[0]
-            created = dateutil.parser.parse(created)
-            if (not rdev.created) or created < rdev.created:
-                rdev.created = created
-        except IndexError:
-            pass
-
-        for path in ['status', 'created', 'updated']:
-            for elem in event.xpath(path):
-                event.remove(elem)
+        el.remove(geometry)
+        el.append(E.geography(geom_to_xml_element(obj.geom)))
 
         # Push down the default language if necessary
-        if not event.get(XML_LANG):
-            event.set(XML_LANG, default_language)
+        if not el.get(XML_LANG):
+            el.set(XML_LANG, default_language)
 
-        rdev.xml_elem = event
-        rdev.save()
-        return rdev
+        obj.xml_elem = el
+        if save:
+            obj.save()
+        return obj
 
-
-class RoadEvent(_Open511Model, XMLModelMixin):
+class _Open511CommonModel(_Open511Model, XMLModelMixin):
+    """A 'common' model is for a resource that has:
+    * A jurisdiction, and a jurisdiction-based Open511 ID
+    * An individual URL for each resource
+    * A blob of XML
+    """
 
     internal_id = models.AutoField(primary_key=True)
-    active = models.BooleanField(default=True)
-
     id = models.CharField(max_length=100, blank=True, db_index=True)
+    
     jurisdiction = models.ForeignKey(Jurisdiction)
-
-    published = models.BooleanField(default=True, db_index=True)
-
     external_url = models.URLField(blank=True, db_index=True)
 
-    geom = models.GeometryField(verbose_name=_('Geometry'), geography=True)
-    xml_data = XMLField(
-        default='<event xmlns:gml="http://www.opengis.net/gml" />')
-
-    objects = RoadEventManager()
-
-    FREE_TEXT_TAGS = [
-        'headline', 'description', 'detour', 'road_name', 'from', 'to', 'area_name'
-    ]
-
     class Meta(object):
+        abstract = True
         unique_together = [
             ('id', 'jurisdiction')
         ]
         ordering = ('internal_id',)
 
-    def __init__(self, *args, **kwargs):
-        lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
-        super(RoadEvent, self).__init__(*args, **kwargs)
-        if not self.internal_id and not self.xml_elem.get(XML_LANG):
-            self.xml_elem.set(XML_LANG, lang)
+    def __unicode__(self):
+        return u"%s (%s)" % (self.id, self.jurisdiction)
+
+    def clean(self):
+        self.validate_xml()        
 
     def save(self, force_insert=False, force_update=False, using=None):
         self.xml_data = etree.tostring(self.xml_elem)
         self.full_clean()
-        super(RoadEvent, self).save(force_insert=force_insert, force_update=force_update,
+        super(_Open511CommonModel, self).save(force_insert=force_insert, force_update=force_update,
             using=using)
         if not self.id:
-            mgr = RoadEvent._default_manager
+            mgr = self.__class__._default_manager
             if using:
                 mgr = mgr.using(using)
             mgr.filter(internal_id=self.internal_id).update(
@@ -314,26 +290,10 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             )
             self.id = self.internal_id
 
-    def __unicode__(self):
-        return u"%s (%s)" % (self.id, self.jurisdiction)
-
-    def clean(self):
-        self.validate_xml()
-
-    def get_absolute_url(self):
-        return urlresolvers.reverse('open511_roadevent', kwargs={
-            'jurisdiction_id': self.jurisdiction.id,
-            'id': self.id}
-        )
-
-    def get_validation_xml(self):
-        return self.to_full_xml_element(fake_links=True)
-
     def to_full_xml_element(self, accept_language=None,
-            fake_links=False, remove_internal_elements=False):
-        el = deepcopy(self.xml_elem)
+        fake_links=False, remove_internal_elements=False):
 
-        el.insert(0, E.status('ACTIVE' if self.active else 'ARCHIVED'))
+        el = deepcopy(self.xml_elem)
 
         if fake_links:
             el.insert(0, E.id('xxx.yyy/x%s' % self.id))
@@ -344,21 +304,16 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             el.insert(0, make_link('jurisdiction', self.jurisdiction.full_url))
             el.insert(0, make_link('self', self.url))
 
-        el.append(E.created(self.created.isoformat()))
-        el.append(E.updated(self.updated.isoformat()))
-
         if remove_internal_elements:
             for internal_element in el.xpath('//*[namespace-uri()="' + NSMAP['protected'] + '"]'):
                 internal_element.getparent().remove(internal_element)
-        else:
-            if not self.published:
-                unpublished = etree.Element('{%s}unpublished' % NSMAP['protected'], nsmap=NSMAP)
-                unpublished.text = 'true'
-                el.append(unpublished)
 
         self.remove_unnecessary_languages(accept_language, el)
 
         return el
+
+    def get_validation_xml(self):
+        return self.to_full_xml_element(fake_links=True)        
 
     def _get_or_create_el(self, path, parent=None):
         if parent is None:
@@ -380,7 +335,78 @@ class RoadEvent(_Open511Model, XMLModelMixin):
             parent.append(el)
             return el
         elif len(els) > 1:
-            raise NotImplementedError
+            raise NotImplementedError        
+
+class RoadEventManager(_Open511CommonManager):
+    def update_or_create_from_xml(self, el,
+        default_language=settings.LANGUAGE_CODE, base_url=''):
+
+        rdev = super(RoadEventManager, self).update_or_create_from_xml(
+            el, default_language, base_url, save=False)
+
+        status = rdev.xml_elem.xpath('status')
+        if status:
+            if status[0].text.lower() == 'archived':
+                rdev.active = False
+
+        try:
+            created = rdev.xml_elem.xpath('created/text()')[0]
+            created = dateutil.parser.parse(created)
+            if (not rdev.created) or created < rdev.created:
+                rdev.created = created
+        except IndexError:
+            pass
+
+        for path in ['status', 'created', 'updated']:
+            for elem in rdev.xml_elem.xpath(path):
+                rdev.xml_elem.remove(elem)
+
+        rdev.save()
+        return rdev
+
+class RoadEvent(_Open511CommonModel):
+
+    active = models.BooleanField(default=True)
+    published = models.BooleanField(default=True, db_index=True)
+
+    geom = models.GeometryField(verbose_name=_('Geometry'), geography=True)
+    xml_data = XMLField(
+        default='<event xmlns:gml="http://www.opengis.net/gml" />')
+
+    objects = RoadEventManager()
+
+    FREE_TEXT_TAGS = [
+        'headline', 'description', 'detour', 'road_name', 'from', 'to', 'area_name'
+    ]
+
+    def __init__(self, *args, **kwargs):
+        lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
+        super(RoadEvent, self).__init__(*args, **kwargs)
+        if not self.internal_id and not self.xml_elem.get(XML_LANG):
+            self.xml_elem.set(XML_LANG, lang)
+
+    def get_absolute_url(self):
+        return urlresolvers.reverse('open511_roadevent', kwargs={
+            'jurisdiction_id': self.jurisdiction.id,
+            'id': self.id}
+        )
+
+    def to_full_xml_element(self, accept_language=None,
+            fake_links=False, remove_internal_elements=False):
+
+        el = super(RoadEvent, self).to_full_xml_element(accept_language, fake_links, remove_internal_elements)
+
+        el.insert(0, E.status('ACTIVE' if self.active else 'ARCHIVED'))
+
+        el.append(E.created(self.created.isoformat()))
+        el.append(E.updated(self.updated.isoformat()))
+
+        if not remove_internal_elements and not self.published:
+            unpublished = etree.Element('{%s}unpublished' % NSMAP['protected'], nsmap=NSMAP)
+            unpublished.text = 'true'
+            el.append(unpublished)
+
+        return el
 
     def update(self, key, val):
 
@@ -485,12 +511,29 @@ class Area(_Open511Model, XMLModelMixin):
         return u"%s (%s)" % (self.name, self.id)
 
     def save(self, *args, **kwargs):
-        # if not self.xml_elem.xpath('id'):
-        #     self.xml_elem.insert(0, E.id(str(self.id)))
-        #     self.xml_elem.append(make_link('self', 'http://geonames.org/%s/about.rdf' % self.geonames_id))
         self.xml_data = etree.tostring(self.xml_elem)
         self.full_clean()
         super(Area, self).save(*args, **kwargs)
+
+class Camera(_Open511CommonModel):
+
+    xml_data = XMLField(default='<camera xmlns:gml="http://www.opengis.net/gml" />')
+
+    geom = models.PointField(geography=True)
+
+    objects = _Open511CommonManager()
+
+    FREE_TEXT_TAGS = ['name']
+
+    @property
+    def name(self):
+        return self.get_text_value('name')
+
+    def get_absolute_url(self):
+        return urlresolvers.reverse('open511_camera', kwargs={
+            'jurisdiction_id': self.jurisdiction.id,
+            'id': self.id}
+        )        
 
 
 class SearchGeometry(object):

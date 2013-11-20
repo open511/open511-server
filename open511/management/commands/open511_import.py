@@ -13,11 +13,15 @@ import requests
 from open511_validator import Open511ValidationError
 
 from open511.conf import settings
-from open511.models import RoadEvent, Jurisdiction
+from open511.models import RoadEvent, Jurisdiction, Camera
 from open511.utils.serialization import XML_LANG, XML_BASE
 
 logger = logging.getLogger(__name__)
 
+RESOURCE_TYPES = [
+    {'container': 'events', 'objects': 'events/event', 'model': RoadEvent},
+    {'container': 'cameras', 'objects': 'cameras/camera', 'model': Camera}
+]
 
 class Command(BaseCommand):
 
@@ -35,7 +39,12 @@ class Command(BaseCommand):
         created = []
 
         opts = {}
+
+        resource_type = next(t for t in RESOURCE_TYPES if root.xpath(t['container']))
+
         if options['archive']:
+            if resource_type['model'] != RoadEvent:
+                raise Exception("The archive option works only with road events")
             jurisdiction_ids = set(eid.split('/')[0] for eid in root.xpath('events/event/id/text()'))
             if len(jurisdiction_ids) > 1:
                 raise ImproperlyConfigured(
@@ -55,15 +64,15 @@ class Command(BaseCommand):
         while True:
             # Loop until we've dealt with all pages
 
-            for event in root.xpath('events/event'):
+            for xml_obj in root.xpath(resource_type['objects']):
                 try:
-                    rdev = RoadEvent.objects.update_or_create_from_xml(event, **opts)
-                    logger.info("Imported event %s" % rdev.id)
+                    db_obj = resource_type['model'].objects.update_or_create_from_xml(xml_obj, **opts)
+                    logger.info("Imported %s %s" % (xml_obj.tag, db_obj.id))
 
-                    created.append(rdev)
+                    created.append(db_obj)
 
                 except (ValueError, ValidationError, Open511ValidationError) as e:
-                    logger.error("%s importing %s: %s" % (e.__class__.__name__, event.get('id'), e))
+                    logger.error("%s importing %s: %s" % (e.__class__.__name__, xml_obj.get('id'), e))
 
             next_link = root.xpath('pagination/link[@rel="next"]')
             if not next_link:

@@ -12,7 +12,7 @@ from django.utils.translation import string_concat
 
 from webob.acceptparse import AcceptLanguage
 
-from open511.models import RoadEvent, Jurisdiction, JurisdictionGeography, Area
+from open511.models import RoadEvent, Jurisdiction, JurisdictionGeography, Area, Camera
 from open511.utils.serialization import ELEMENTS
 
 
@@ -115,6 +115,7 @@ admin.site.register(RoadEvent, RoadEventAdmin)
 admin.site.register(Jurisdiction, JurisdictionAdmin)
 admin.site.register(JurisdictionGeography)
 admin.site.register(Area)
+admin.site.register(Camera)
 
 class JurInline(admin.TabularInline):
     model = Jurisdiction.permitted_users.through

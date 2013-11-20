@@ -1,12 +1,8 @@
 import datetime
 from functools import partial
 import json
-import operator
 
-from django.contrib.gis.geos import Polygon
-from django.contrib.gis.measure import Distance
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, Http404, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404
 
@@ -18,6 +14,7 @@ from open511.models import RoadEvent, Jurisdiction, SearchGeometry
 from open511.utils.auth import can
 from open511.utils.exceptions import BadRequest
 from open511.utils.views import APIView, ModelListAPIView, Resource
+from open511.views import CommonFilters, CommonListView
 
 
 def filter_status(qs, value):
@@ -30,70 +27,7 @@ def filter_status(qs, value):
     else:
         return qs.none()
 
-
-def filter_xpath(xpath, qs, value, xml_field='open511_roadevent.xml_data', typecast='text', allow_list=True):
-    if allow_list:
-        if isinstance(value, basestring):
-            value = value.split(',')
-    else:
-        value = [value]
-    return qs.extra(
-        where=['(xpath(%s, {0}))::{1}[] && %s'.format(xml_field, typecast)],
-        params=[xpath, value]
-    )
-
-
-def filter_db(fieldname, qs, value, allow_operators=False):
-    if allow_operators:
-        op, value = _parse_operator_from_value(value)
-        fieldname = fieldname + '__' + op
-    return qs.filter(**{fieldname: value})
-
-
-def filter_datetime(fieldname, qs, value):
-    query_type, value = _parse_operator_from_value(value)
-    value = dateutil.parser.parse(value)
-    if not value.tzinfo:
-        raise ValueError("Time-based filters must provide a timezone")
-    return qs.filter(**{'__'.join((fieldname, query_type)): value})
-
-
-def filter_bbox(qs, value, fieldname='geom'):
-    coords = [float(n) for n in value.split(',')]
-    assert len(coords) == 4
-    return qs.filter(**{fieldname + '__intersects': Polygon.from_bbox(coords)})
-
-def filter_geography(qs, value, within=None):
-    search_geom = SearchGeometry.fromstring(value)
-    if within is not None:
-        return qs.filter(geom__dwithin=(search_geom.geom, Distance(m=within)))
-    return qs.filter(geom__intersects=search_geom.geom)
-
-def filter_jurisdiction(qs, value):
-    # The jurisdiction parameter can be:
-    # - A full http:// URL to the external jurisdiction
-    # - Some kind of relative URL: /api/jurisdictions/mtq
-    # - Just the ID: ville.montreal.qc.ca
-    filters = []
-    for jur in value.split(','):
-        filters.append(Q(jurisdiction__external_url=jur))
-        filters.append(Q(jurisdiction__id=jur.rstrip('/').split('/')[-1]))
-    return qs.filter(reduce(operator.or_, filters))
-
-FILTER_OPERATORS = [
-    ('<=', 'lte'),
-    ('>=', 'gte'),
-    ('<', 'lt'),
-    ('>', 'gt')
-]
-def _parse_operator_from_value(value):
-    for op, query_type in FILTER_OPERATORS:
-        if value.startswith(op):
-            return query_type, value[len(op):]
-    return 'exact', value
-
-
-class RoadEventListView(ModelListAPIView):
+class RoadEventListView(CommonListView):
 
     allow_jsonp = True
 
@@ -103,18 +37,18 @@ class RoadEventListView(ModelListAPIView):
 
     filters = {
         'status': filter_status,
-        'event_type': partial(filter_xpath, 'event_type/text()'),
-        'created': partial(filter_datetime, 'created'),
-        'updated': partial(filter_datetime, 'updated'),
-        'bbox': filter_bbox,
-        'jurisdiction': filter_jurisdiction,
-        'severity': partial(filter_xpath, 'severity/text()'),
-        'event_subtype': partial(filter_xpath, 'event_subtypes/event_subtype/text()'),
-        'road_name': partial(filter_xpath, 'roads/road/name/text()'),
-        'impacted_system': partial(filter_xpath, 'roads/road/impacted_systems/impacted_system/text()'),
-        'id': partial(filter_db, 'id'),
-        'area_id': partial(filter_xpath, 'areas/area/id/text()'),
-        'area_name': partial(filter_xpath, 'areas/area/name/text()'),
+        'event_type': partial(CommonFilters.xpath, 'event_type/text()'),
+        'created': partial(CommonFilters.datetime, 'created'),
+        'updated': partial(CommonFilters.datetime, 'updated'),
+        'bbox': CommonFilters.bbox,
+        'jurisdiction': CommonFilters.jurisdiction,
+        'severity': partial(CommonFilters.xpath, 'severity/text()'),
+        'event_subtype': partial(CommonFilters.xpath, 'event_subtypes/event_subtype/text()'),
+        'road_name': partial(CommonFilters.xpath, 'roads/road/name/text()'),
+        'impacted_system': partial(CommonFilters.xpath, 'roads/road/impacted_systems/impacted_system/text()'),
+        'id': partial(CommonFilters.db, 'id'),
+        'area_id': partial(CommonFilters.xpath, 'areas/area/id/text()'),
+        'area_name': partial(CommonFilters.xpath, 'areas/area/name/text()'),
         'geography': None,  # dealt with in post_filter
         'tolerance': None,  # dealth with in post_filter
         'in_effect_on': None,  # dealt with in post_filter
@@ -125,10 +59,6 @@ class RoadEventListView(ModelListAPIView):
 
     def post_filter(self, request, qs):
         objects = super(RoadEventListView, self).post_filter(request, qs)
-
-        if 'geography' in request.REQUEST:
-            objects = filter_geography(objects, request.REQUEST['geography'],
-                within=request.REQUEST.get('tolerance'))
 
         if 'in_effect_on' in request.REQUEST:
             # FIXME inefficient - implement on DB
@@ -148,10 +78,7 @@ class RoadEventListView(ModelListAPIView):
         return objects
 
     def get_qs(self, request, jurisdiction_id=None):
-        qs = RoadEvent.objects.all()
-        if jurisdiction_id:
-            jur = get_object_or_404(Jurisdiction, id=jurisdiction_id)
-            qs = qs.filter(jurisdiction=jur)
+        qs = super(RoadEventListView, self).get_qs(request, jurisdiction_id)
 
         if not can(request, 'view_internal'):
             qs = qs.filter(published=True)
