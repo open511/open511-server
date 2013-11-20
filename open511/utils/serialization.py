@@ -4,7 +4,6 @@ import re
 
 from lxml import etree
 
-from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
@@ -24,9 +23,12 @@ NSMAP = {
 }
 
 try:
+    from open511.conf import settings
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
+    DEFAULT_VERSION = settings.OPEN511_DEFAULT_VERSION
 except (ImportError, ImproperlyConfigured):
     DEFAULT_LANGUAGE = 'en'
+    DEFAULT_VERSION = 'v0'
 
 etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)
@@ -221,6 +223,6 @@ class XMLModelMixin(object):
             make_link('self', '/'),
             make_link('up', '/')
         ])
-        doc.set('version', 'v0')
+        doc.set('version', settings.OPEN511_DEFAULT_VERSION)
         # Then run it through schema
         open511_validator.validate(doc)

@@ -26,7 +26,7 @@ class APIView(View):
     allow_jsonp = True
 
     potential_content_types = set(('application/xml', 'application/json', 'text/html'))
-    potential_versions = ['v0']
+    potential_versions = [settings.OPEN511_DEFAULT_VERSION]
     unauthenticated_methods = ('GET', 'HEAD', 'OPTIONS')
     http_method_names = View.http_method_names + ['patch']
 

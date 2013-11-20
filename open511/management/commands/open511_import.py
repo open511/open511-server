@@ -1,16 +1,18 @@
 import logging
 from optparse import make_option
 import re
-import sys
-import urllib2
+from urlparse import urljoin
 
 from django.core.exceptions import (ValidationError, ImproperlyConfigured)
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from lxml import etree
+import requests
 
 from open511_validator import Open511ValidationError
 
+from open511.conf import settings
 from open511.models import RoadEvent, Jurisdiction
 from open511.utils.serialization import XML_LANG, XML_BASE
 
@@ -24,11 +26,10 @@ class Command(BaseCommand):
             help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.'),
     )
 
+    @transaction.atomic
     def handle(self, source, **options):
-        if re.search(r'^https?://', source):
-            source_url = source
-            source = urllib2.urlopen(source_url)
-        root = etree.parse(source).getroot()
+        source_is_url = bool(re.search(r'^https?://', source))
+        root = self.fetch_from_url(source) if source_is_url else etree.parse(source).getroot()
         assert root.tag == 'open511'
 
         created = []
@@ -48,16 +49,32 @@ class Command(BaseCommand):
 
         if root.get(XML_BASE):
             opts['base_url'] = root.get(XML_BASE)
+        elif source_is_url:
+            opts['base_url'] = source
 
-        for event in root.xpath('events/event'):
-            try:
-                rdev = RoadEvent.objects.update_or_create_from_xml(event, **opts)
-                logger.info("Imported event %s" % rdev.id)
+        while True:
+            # Loop until we've dealt with all pages
 
-                created.append(rdev)
+            for event in root.xpath('events/event'):
+                try:
+                    rdev = RoadEvent.objects.update_or_create_from_xml(event, **opts)
+                    logger.info("Imported event %s" % rdev.id)
 
-            except (ValueError, ValidationError, Open511ValidationError) as e:
-                logger.error("%s importing %s: %s" % (e.__class__.__name__, event.get('id'), e))
+                    created.append(rdev)
+
+                except (ValueError, ValidationError, Open511ValidationError) as e:
+                    logger.error("%s importing %s: %s" % (e.__class__.__name__, event.get('id'), e))
+
+            next_link = root.xpath('pagination/link[@rel="next"]')
+            if not next_link:
+                break
+            if not source_is_url:
+                logger.warning("File contains a next link but was loaded from local filesystem; "
+                    "not following the link. If you want to fetch other pages, use the URL of the "
+                    "first page as the argument to this command.")
+                break
+            next_url = urljoin(source, next_link[0].get('href'))
+            root = self.fetch_from_url(next_url)
 
         msg = "%s entries imported." % len(created)
 
@@ -68,3 +85,10 @@ class Command(BaseCommand):
             msg += " %s events archived." % updated
 
         print msg
+
+    def fetch_from_url(self, url):
+        resp = requests.get(url, headers={
+            'Accept': 'application/xml',
+            'Open511-Version': settings.OPEN511_DEFAULT_VERSION
+        })
+        return etree.fromstring(resp.content)

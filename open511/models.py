@@ -76,7 +76,7 @@ class JurisdictionManager(models.GeoManager):
         # Looks like we need to fetch the jurisdiction
         req = requests.get(url, headers={'Accept': 'application/xml'})
         root = etree.fromstring(req.content)
-        jur = root.xpath('jurisdiction')[0]
+        jur = root.xpath('jurisdictions/jurisdiction')[0]
         jur_id = jur.xpath('id/text()')[0]
 
         try:
@@ -94,7 +94,7 @@ class JurisdictionManager(models.GeoManager):
             jur = self.get(id=jur_id)
         except ObjectDoesNotExist:
             jur = self.model(
-                external_url=self_link.get('href'),
+                external_url=urljoin(base_url, self_link.get('href')),
                 id=jur_id
             )
             try:
@@ -217,7 +217,10 @@ class RoadEventManager(models.GeoManager):
         try:
             jurisdiction = Jurisdiction.objects.get(id=jurisdiction_id)
         except Jurisdiction.DoesNotExist:
-            jurisdiction = Jurisdiction.objects.get_or_create_from_url(external_jurisdiction[0].get('href'))
+            if not external_jurisdiction:
+                raise Exception("No jurisdiction URL provided for %s" % jurisdiction_id)
+            jurisdiction = Jurisdiction.objects.get_or_create_from_url(
+                urljoin(base_url, external_jurisdiction[0].get('href')))
 
         self_link = event.xpath('link[@rel="self"]')
         external_url = urljoin(base_url, self_link[0].get('href')) if self_link else ''
@@ -457,7 +460,7 @@ class RoadEvent(_Open511Model, XMLModelMixin):
 
 class Area(_Open511Model, XMLModelMixin):
 
-    geonames_id = models.IntegerField(primary_key=True)
+    internal_id = models.AutoField(primary_key=True)
 
     xml_data = XMLField(default='<area />')
 
@@ -474,13 +477,17 @@ class Area(_Open511Model, XMLModelMixin):
     def name(self):
         return self.get_text_value('name')
 
+    @property
+    def id(self):
+        return self.xml_elem.findtext('id')
+
     def __unicode__(self):
-        return u"%s (%s)" % (self.name, self.geonames_id)
+        return u"%s (%s)" % (self.name, self.id)
 
     def save(self, *args, **kwargs):
-        if not self.xml_elem.xpath('id'):
-            self.xml_elem.insert(0, E.id(str(self.geonames_id)))
-            self.xml_elem.append(make_link('self', 'http://geonames.org/%s/about.rdf' % self.geonames_id))
+        # if not self.xml_elem.xpath('id'):
+        #     self.xml_elem.insert(0, E.id(str(self.id)))
+        #     self.xml_elem.append(make_link('self', 'http://geonames.org/%s/about.rdf' % self.geonames_id))
         self.xml_data = etree.tostring(self.xml_elem)
         self.full_clean()
         super(Area, self).save(*args, **kwargs)
