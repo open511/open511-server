@@ -17,10 +17,4 @@ setup(
         'cssselect==0.8',
         'Django>=1.6,<1.7'
     ],
-    entry_points = {
-        'console_scripts': [
-            'mtl_kml_to_open511 = open511.scripts.mtl_kml_to_open511:main',
-            'scrape_mtq_to_open511 = open511.scripts.scrape_mtq_to_open511:main',
-        ]
-    },
 )
