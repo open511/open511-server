@@ -11,7 +11,7 @@ install:
 before_script:
     - createdb -U postgres open511
     - psql -U postgres -d open511 -c "CREATE EXTENSION postgis"
-    - python setup.py install
+    - python setup.py develop
     - cd travis-ci
     - python manage.py syncdb --noinput --all
 script:
