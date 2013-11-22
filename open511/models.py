@@ -223,13 +223,15 @@ class _Open511CommonManager(models.GeoManager):
             jurisdiction = Jurisdiction.objects.get_or_create_from_url(
                 urljoin(base_url, external_jurisdiction[0].get('href')))
 
-        self_link = el.xpath('link[@rel="self"]')
-        external_url = urljoin(base_url, self_link[0].get('href')) if self_link else ''
-
         try:
             obj = self.get(id=obj_id, jurisdiction=jurisdiction)
         except ObjectDoesNotExist:
-            obj = self.model(id=obj_id, jurisdiction=jurisdiction, external_url=external_url)
+            obj = self.model(id=obj_id, jurisdiction=jurisdiction)
+
+        self_link = el.xpath('link[@rel="self"]')
+        if self_link:
+            obj.external_url = urljoin(base_url, self_link[0].get('href'))
+            el.remove(self_link[0])            
 
         # Extract the geometry
         geometry = el.xpath('geography')[0]
