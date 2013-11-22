@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
         msg = "%s entries imported." % len(created)
 
-        if options['archive']:
+        if options['archive'] and created:
             archive_jurisdiction = Jurisdiction.objects.get(id=archive_jurisdiction_id)
             updated = RoadEvent.objects.filter(jurisdiction=archive_jurisdiction, active=True).exclude(
                 id__in=[rdev.id for rdev in created]).update(active=False)
