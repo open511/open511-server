@@ -438,7 +438,7 @@ class RoadEvent(_Open511CommonModel):
             wkt = gml_to_ewkt(etree.tostring(gml))
             self.geom = geos_geom_from_string(wkt)
             update_el.clear()
-            update_el.append(geom_to_xml_element(self.geom))
+            update_el.append(gml)
         elif isinstance(val, (dict, list)):
             if not val:
                 update_el.getparent().remove(update_el)

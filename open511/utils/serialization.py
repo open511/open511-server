@@ -1,6 +1,6 @@
 from collections import namedtuple
 from copy import deepcopy
-import re
+import json
 
 from lxml import etree
 
@@ -9,7 +9,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
 import open511_validator
-from open511_validator.converter import pluralize
+from open511_validator.converter import pluralize, geojson_to_gml
 
 from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
@@ -36,27 +36,10 @@ parser = etree.XMLParser(remove_blank_text=True)
 def geom_to_xml_element(geom):
     """Transform a GEOS or OGR geometry object into an lxml Element
     for the GML geometry."""
-    if isinstance(geom, GEOSGeometry):
-        geom = geom.ogr
-    xml = '<geom xmlns:gml="http://www.opengis.net/gml">%s</geom>' % geom.gml
-    el = etree.fromstring(xml)
-    return el[0]
-
-
-def gml2_to_gml3(gml_string, remove_3D=True):
-    """Transform a string representation of a GMLv2 geometry to a GMLv3 geometry.
-    (Or rather, since GMLv3 is backwards compatible, substitute deprecated elements
-        with their GMLv3 equivalents.)"""
-    assert gml_string.startswith('<gml:')
-    if gml_string.startswith('<gml:Point') or gml_string.startswith('<gml:MultiPoint'):
-        gml_string = gml_string.replace('gml:coordinates', 'gml:pos')
-    else:
-        gml_string = gml_string.replace('gml:coordinates', 'gml:posList')
-    if gml_string.startswith('<gml:Polygon') or gml_string.startswith('<gml:MultiPolygon'):
-        gml_string = gml_string.replace('gml:outerBoundaryIs', 'gml:exterior').replace('gml:innerBoundaryIs', 'gml:interior')
-    if remove_3D:
-        gml_string = re.sub(r',0(?=[ <])', '', gml_string)
-    return gml_string.replace(',', ' ')
+    if geom.srs.srid != 4326:
+        raise NotImplementedError("Only WGS 84 lat/long geometries (SRID 4326) are supported.")
+    # GeoJSON output is far more standard than GML, so go through that
+    return geojson_to_gml(json.loads(geom.geojson))
 
 DataField = namedtuple('DataField', 'tag type name')
 ELEMENTS = [
