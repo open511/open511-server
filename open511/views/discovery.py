@@ -12,7 +12,6 @@ SERVICES = [
         'type_url': 'http://open511.org/services/events/',
         'description': 'Provide information about events impacting the road system',
         'url_name': 'open511_roadevent_list',
-        'test': lambda: RoadEvent.objects.all().exists()
     },
     {
         'type_url': 'http://open511.org/services/areas/',
@@ -44,7 +43,7 @@ class DiscoveryView(APIView):
                 #E.service_description(s['description']),
                 make_link('self', urlresolvers.reverse(s['url_name'])),
                 make_link('service_type', s['type_url'])
-            ) for s in SERVICES if s['test']()
+            ) for s in SERVICES if 'test' not in s or s['test']()
         ])
 
         return Resource([jurisdictions, services])
