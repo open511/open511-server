@@ -7,6 +7,7 @@ from django.conf import settings
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.template.defaultfilters import escape
+from django.utils.cache import patch_vary_headers
 from django.utils.http import http_date
 from django.utils.safestring import mark_safe
 from django.views.generic import View
@@ -96,6 +97,8 @@ class APIView(View):
 
         if not resp.has_header('Expires'):
             resp['Expires'] = http_date(time.time())
+
+        patch_vary_headers(resp, ['Accept', 'Accept-Language', 'Open511-Version'])
 
         return resp
 
