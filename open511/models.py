@@ -273,7 +273,11 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
         ordering = ('internal_id',)
 
     def __unicode__(self):
-        return u"%s (%s)" % (self.id, self.jurisdiction)
+        return self.full_id
+
+    @property
+    def full_id(self):
+        return u'/'.join((self.jurisdiction.id, self.id))
 
     def clean(self):
         self.validate_xml()        
@@ -302,7 +306,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
             el.insert(0, make_link('jurisdiction', '/xxx'))
             el.insert(0, make_link('self', '/xxx/yyy'))
         else:
-            el.insert(0, E.id('/'.join((self.jurisdiction.id, self.id))))
+            el.insert(0, E.id(self.full_id))
             el.insert(0, make_link('jurisdiction', self.jurisdiction.full_url))
             el.insert(0, make_link('self', self.url))
 
