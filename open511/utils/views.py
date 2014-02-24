@@ -112,9 +112,9 @@ class APIView(View):
             base.append(result.pagination_to_xml())
         metadata = self.get_response_metadata(request)
         base.set('version', metadata['version'])
-        base.append(make_link('self', metadata['url']))
-        if 'up_url' in metadata:
-            base.append(make_link('up', metadata['up_url']))
+        # base.append(make_link('self', metadata['url']))
+        # if 'up_url' in metadata:
+        #     base.append(make_link('up', metadata['up_url']))
         return base
 
     def render_xml(self, request, result):
@@ -182,13 +182,13 @@ class APIView(View):
             url += '?' + request.META['QUERY_STRING']
         m = {
             'version': request.response_version,
-            'url': url,
+            # 'url': url,
         }
-        if self.include_up_link:
-            if getattr(self, 'up_url', None):
-                m['up_url'] = urlparse.urljoin(request.path, self.up_url)
-            else:
-                m['up_url'] = urlparse.urljoin(request.path, '../')
+        # if self.include_up_link:
+        #     if getattr(self, 'up_url', None):
+        #         m['up_url'] = urlparse.urljoin(request.path, self.up_url)
+        #     else:
+        #         m['up_url'] = urlparse.urljoin(request.path, '../')
         return m
 
 
