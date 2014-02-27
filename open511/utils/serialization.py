@@ -202,10 +202,6 @@ class XMLModelMixin(object):
         container = etree.Element(pluralize(el.tag))
         container.append(el)
         doc.append(container)
-        doc.extend([
-            make_link('self', '/'),
-            make_link('up', '/')
-        ])
         doc.set('version', settings.OPEN511_DEFAULT_VERSION)
         # Then run it through schema
         open511_validator.validate(doc)

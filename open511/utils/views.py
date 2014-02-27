@@ -15,7 +15,7 @@ from django.views.generic import View
 from lxml import etree
 from lxml.builder import E
 
-from open511_validator.converter import xml_to_json
+from open511_validator.converter import xml_to_json, json_link_key_to_xml_rel
 
 from open511.utils.exceptions import BadRequest
 from open511.utils.http import accept_from_request, accept_language_from_request
@@ -82,6 +82,8 @@ class APIView(View):
         if isinstance(result, HttpResponse):
             return result
 
+        self.remove_unselected_fields(request, result)
+
         if request.response_format == 'application/xml':
             resp = self.render_xml(request, result)
         elif request.response_format == 'application/json':
@@ -116,6 +118,23 @@ class APIView(View):
         # if 'up_url' in metadata:
         #     base.append(make_link('up', metadata['up_url']))
         return base
+
+    def remove_unselected_fields(self, request, result):
+        if not request.GET.get('fields'):
+            return
+
+        fields = frozenset(json_link_key_to_xml_rel(key) for key in request.GET['fields'].split(','))
+        def _remove_children(el):
+            for child in el:
+                tagname = child.tag
+                if '}' in tagname:
+                    tagname = tagname.partition('}')[2]
+                if tagname in fields or (tagname == 'link' and child.get('rel') in fields):
+                    _remove_children(child)
+                else:
+                    el.remove(child)
+        for obj in result.resource:
+            _remove_children(obj)
 
     def render_xml(self, request, result):
         return HttpResponse(

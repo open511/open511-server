@@ -47,7 +47,7 @@ class RoadEventListView(CommonListView):
         'road_name': partial(CommonFilters.xpath, 'roads/road/name/text()'),
         'impacted_system': partial(CommonFilters.xpath, 'roads/road/impacted_systems/impacted_system/text()'),
         'id': partial(CommonFilters.db, 'id'),
-        'area_id': partial(CommonFilters.xpath, 'areas/area/id/text()'),
+        'area': partial(CommonFilters.xpath, 'areas/area/id/text()'),
         'area_name': partial(CommonFilters.xpath, 'areas/area/name/text()'),
         'geography': None,  # dealt with in post_filter
         'tolerance': None,  # dealth with in post_filter
