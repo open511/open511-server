@@ -181,8 +181,10 @@ class APIView(View):
         if 'accept-language' not in request.GET:
             ctx['get_params'] += [['accept-language', unicode(request.accept_language)]]
 
-        if getattr(self, 'filters', None):
-            ctx['available_filters'] = self.filters.keys()
+        ctx['available_filters'] = [k for k in
+            ['version', 'limit', 'fields'] + getattr(self, 'filters', {}).keys()
+            if k not in request.GET
+        ]
 
         ctx['is_list'] = isinstance(self, ModelListAPIView)
         model = getattr(self, 'model', None)
