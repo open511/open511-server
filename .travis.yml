@@ -7,12 +7,12 @@ before_install:
     - "sudo apt-get update -qq"
     - "sudo apt-get install -qq libgeos-dev libproj-dev gdal-bin python-psycopg2 python-lxml"
 install:
-    - "pip install -r travis-ci/requirements.txt --use-mirrors"
+    - "pip install -r travis-ci/requirements.txt"
 before_script:
     - createdb -U postgres open511
     - psql -U postgres -d open511 -c "CREATE EXTENSION postgis"
     - python setup.py develop
     - cd travis-ci
-    - python manage.py syncdb --noinput --all
+    - python manage.py migrate --noinput
 script:
     - python manage.py test open511
