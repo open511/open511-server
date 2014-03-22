@@ -21,12 +21,12 @@ import pytz
 
 from open511_validator.converter import json_struct_to_xml, geojson_to_gml
 
-from open511.fields import XMLField
-from open511.utils import is_hex
-from open511.utils.cache import memoize_method
-from open511.utils.calendar import Schedule
-from open511.utils.postgis import gml_to_ewkt
-from open511.utils.serialization import (
+from open511.server.fields import XMLField
+from open511.server.utils import is_hex
+from open511.server.utils.cache import memoize_method
+from open511.server.utils.calendar import Schedule
+from open511.server.utils.postgis import gml_to_ewkt
+from open511.server.utils.serialization import (
     geom_to_xml_element, XML_LANG, XMLModelMixin, NSMAP,
     make_link
 )

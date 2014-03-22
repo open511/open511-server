@@ -3,8 +3,8 @@ from django.views.generic import View
 
 from lxml import etree
 
-from open511.models import Jurisdiction, RoadEvent
-from open511.utils.serialization import XML_LANG
+from open511.server.models import Jurisdiction, RoadEvent
+from open511.server.utils.serialization import XML_LANG
 
 
 class TestEndpointView(View):

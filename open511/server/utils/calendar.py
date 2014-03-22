@@ -8,7 +8,7 @@ from django.utils import timezone
 from dateutil import rrule
 import pytz
 
-from open511.utils.cache import memoize_method
+from open511.server.utils.cache import memoize_method
 
 Period = namedtuple('Period', 'start end')
 

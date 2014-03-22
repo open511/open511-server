@@ -1,5 +1,5 @@
-from open511.models import Area
-from open511.utils.views import ModelListAPIView
+from open511.server.models import Area
+from open511.server.utils.views import ModelListAPIView
 
 
 class AreaListView(ModelListAPIView):

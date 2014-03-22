@@ -8,8 +8,8 @@ import datetime
 
 from django.core.management.base import BaseCommand
 
-from open511.models import RoadEvent
-from open511.utils.serialization import NSMAP
+from open511.server.models import RoadEvent
+from open511.server.utils.serialization import NSMAP
 
 class Command(BaseCommand):
 

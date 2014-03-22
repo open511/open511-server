@@ -2,8 +2,8 @@ from django.shortcuts import get_object_or_404
 
 from lxml.builder import E
 
-from open511.models import Jurisdiction, JurisdictionGeography
-from open511.utils.views import ModelListAPIView, APIView, Resource
+from open511.server.models import Jurisdiction, JurisdictionGeography
+from open511.server.utils.views import ModelListAPIView, APIView, Resource
 
 class JurisdictionListView(ModelListAPIView):
 

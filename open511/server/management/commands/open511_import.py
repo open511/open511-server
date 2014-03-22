@@ -12,9 +12,9 @@ import requests
 
 from open511_validator import Open511ValidationError
 
-from open511.conf import settings
-from open511.models import RoadEvent, Jurisdiction, Camera
-from open511.utils.serialization import XML_LANG, XML_BASE
+from open511.server.conf import settings
+from open511.server.models import RoadEvent, Jurisdiction, Camera
+from open511.server.utils.serialization import XML_LANG, XML_BASE
 
 logger = logging.getLogger(__name__)
 

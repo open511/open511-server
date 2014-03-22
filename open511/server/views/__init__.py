@@ -7,8 +7,8 @@ from django.shortcuts import get_object_or_404
 
 import dateutil.parser
 
-from open511.models import Jurisdiction, SearchGeometry
-from open511.utils.views import APIView, ModelListAPIView, Resource
+from open511.server.models import Jurisdiction, SearchGeometry
+from open511.server.utils.views import APIView, ModelListAPIView, Resource
 
 class CommonFilters(object):
 

@@ -12,8 +12,8 @@ from django.utils.translation import string_concat
 
 from webob.acceptparse import AcceptLanguage
 
-from open511.models import RoadEvent, Jurisdiction, JurisdictionGeography, Area, Camera
-from open511.utils.serialization import ELEMENTS
+from open511.server.models import RoadEvent, Jurisdiction, JurisdictionGeography, Area, Camera
+from open511.server.utils.serialization import ELEMENTS
 
 
 class BaseRoadEventForm(forms.BaseModelForm):

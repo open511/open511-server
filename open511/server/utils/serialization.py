@@ -11,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 import open511_validator
 from open511_validator.converter import pluralize, geojson_to_gml
 
-from open511.utils.http import DEFAULT_ACCEPT_LANGUAGE
+from open511.server.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
 XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
 XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
@@ -23,7 +23,7 @@ NSMAP = {
 }
 
 try:
-    from open511.conf import settings
+    from open511.server.conf import settings
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
     DEFAULT_VERSION = settings.OPEN511_DEFAULT_VERSION
 except (ImportError, ImproperlyConfigured):

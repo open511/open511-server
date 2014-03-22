@@ -5,7 +5,7 @@ any scheduled times in the future and archives them.
 
 from django.core.management.base import BaseCommand
 
-from open511.models import RoadEvent
+from open511.server.models import RoadEvent
 
 
 class Command(BaseCommand):

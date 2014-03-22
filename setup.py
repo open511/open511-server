@@ -1,11 +1,15 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = "open511",
+    name = "open511-server",
     version = "0.1",
     url='',
     license = "",
     packages = find_packages(),
+    dependency_links = [
+        'https://www.djangoproject.com/download/1.7b1/tarball/#egg=Django-1.7b1'
+    ],
+    namespace_packages = ['open511'],
     install_requires = [
         'open511-validator',
         'lxml>=2.3',
@@ -15,6 +19,6 @@ setup(
         'pytz>=2013b',
         'django-appconf==0.5',
         'cssselect==0.8',
-        'Django>=1.6,<1.7'
+        'Django>=1.7b1'
     ],
 )

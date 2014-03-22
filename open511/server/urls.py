@@ -1,7 +1,7 @@
 from django.conf.urls import *
-from open511.conf import settings
+from open511.server.conf import settings
 
-urlpatterns = patterns('open511.views',
+urlpatterns = patterns('open511.server.views',
     url(r'^events/$', 'events.list_roadevents', name='open511_roadevent_list'),
     url(r'^events/(?P<jurisdiction_id>[a-z0-9.-]+)/$', 'events.list_roadevents',
         name='open511_roadevent_list'),
@@ -19,5 +19,5 @@ urlpatterns = patterns('open511.views',
 if settings.DEBUG:
     if settings.OPEN511_ENABLE_TEST_ENDPOINT:
         urlpatterns += patterns('',
-            url(r'^_test/$', 'open511.views.test_endpoint.test_endpoint', name='open511_api_test_endpoint'),
+            url(r'^_test/$', 'open511.server.views.test_endpoint.test_endpoint', name='open511_api_test_endpoint'),
         )

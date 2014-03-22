@@ -4,9 +4,9 @@ from django.http import Http404
 
 from lxml.builder import E
 
-from open511.models import Camera
-from open511.utils.views import APIView, Resource
-from open511.views import CommonFilters, CommonListView
+from open511.server.models import Camera
+from open511.server.utils.views import APIView, Resource
+from open511.server.views import CommonFilters, CommonListView
 
 class CameraListView(CommonListView):
 

@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from open511.utils.exceptions import BadRequest
+from open511.server.utils.exceptions import BadRequest
 
 class APIPaginator(object):
     """

@@ -10,7 +10,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         from lxml import etree
-        from open511.utils.serialization import geom_to_xml_element
+        from open511.server.utils.serialization import geom_to_xml_element
         etree.register_namespace('gml', 'http://www.opengis.net/gml')
         parser = etree.XMLParser(remove_blank_text=True)
 

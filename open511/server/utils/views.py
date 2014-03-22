@@ -17,10 +17,10 @@ from lxml.builder import E
 
 from open511_validator.converter import xml_to_json, json_link_key_to_xml_rel
 
-from open511.utils.exceptions import BadRequest
-from open511.utils.http import accept_from_request, accept_language_from_request
-from open511.utils.pagination import APIPaginator
-from open511.utils.serialization import get_base_open511_element, make_link
+from open511.server.utils.exceptions import BadRequest
+from open511.server.utils.http import accept_from_request, accept_language_from_request
+from open511.server.utils.pagination import APIPaginator
+from open511.server.utils.serialization import get_base_open511_element, make_link
 
 class APIView(View):
 
