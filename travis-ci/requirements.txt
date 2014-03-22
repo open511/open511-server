@@ -1,3 +1,4 @@
 psycopg2
 -e git+http://github.com/opennorth/open511-api-tests.git#egg=open511.api_tests
 django-extensions
+setuptools>=3.3
