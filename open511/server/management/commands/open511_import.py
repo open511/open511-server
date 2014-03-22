@@ -10,7 +10,7 @@ from django.db import transaction
 from lxml import etree
 import requests
 
-from open511_validator import Open511ValidationError
+from open511.validator import Open511ValidationError
 
 from open511.server.conf import settings
 from open511.server.models import RoadEvent, Jurisdiction, Camera

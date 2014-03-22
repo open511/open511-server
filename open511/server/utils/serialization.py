@@ -8,8 +8,8 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 
-import open511_validator
-from open511_validator.converter import pluralize, geojson_to_gml
+from open511.validator import validate
+from open511.converter import pluralize, geojson_to_gml
 
 from open511.server.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
@@ -204,4 +204,4 @@ class XMLModelMixin(object):
         doc.append(container)
         doc.set('version', settings.OPEN511_DEFAULT_VERSION)
         # Then run it through schema
-        open511_validator.validate(doc)
+        validate(doc)

@@ -1,7 +1,7 @@
 # encoding: utf8
 from django.db import models, migrations
 import open511.server.utils.serialization
-import django.contrib.gis.db.models.fields
+from django.conf import settings
 import open511.server.fields
 import open511.server.models
 
@@ -9,18 +9,21 @@ import open511.server.models
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('open511', '0001_initial'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Area',
+            name='Jurisdiction',
             fields=[
                 ('created', models.DateTimeField(default=open511.server.models._now, db_index=True)),
                 ('updated', models.DateTimeField(default=open511.server.models._now, db_index=True)),
                 ('internal_id', models.AutoField(serialize=False, primary_key=True)),
-                ('xml_data', open511.server.fields.XMLField(default='<area />')),
-                ('geom', django.contrib.gis.db.models.fields.GeometryField(srid=4326, null=True, blank=True)),
-                ('auto_label', models.BooleanField(default=False, help_text='Automatically include this Area in new events within its boundaries.', db_index=True)),
+                ('id', models.CharField(unique=True, max_length=100, db_index=True)),
+                ('external_url', models.URLField(blank=True)),
+                ('xml_data', open511.server.fields.XMLField(default='<jurisdiction />')),
+                ('permitted_users', models.ManyToManyField(to=settings.AUTH_USER_MODEL, blank=True)),
             ],
             options={
                 u'abstract': False,

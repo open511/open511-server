@@ -19,7 +19,7 @@ from lxml.builder import E
 import requests
 import pytz
 
-from open511_validator.converter import json_struct_to_xml, geojson_to_gml
+from open511.converter import json_struct_to_xml, geojson_to_gml
 
 from open511.server.fields import XMLField
 from open511.server.utils import is_hex

@@ -9,20 +9,25 @@ import open511.server.models
 class Migration(migrations.Migration):
 
     dependencies = [
+        ('open511', '0002_jurisdiction'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Area',
+            name='Camera',
             fields=[
                 ('created', models.DateTimeField(default=open511.server.models._now, db_index=True)),
                 ('updated', models.DateTimeField(default=open511.server.models._now, db_index=True)),
                 ('internal_id', models.AutoField(serialize=False, primary_key=True)),
-                ('xml_data', open511.server.fields.XMLField(default='<area />')),
-                ('geom', django.contrib.gis.db.models.fields.GeometryField(srid=4326, null=True, blank=True)),
-                ('auto_label', models.BooleanField(default=False, help_text='Automatically include this Area in new events within its boundaries.', db_index=True)),
+                ('id', models.CharField(db_index=True, max_length=100, blank=True)),
+                ('jurisdiction', models.ForeignKey(to='open511.Jurisdiction', to_field='internal_id')),
+                ('external_url', models.URLField(db_index=True, blank=True)),
+                ('xml_data', open511.server.fields.XMLField(default='<camera xmlns:gml="http://www.opengis.net/gml" />')),
+                ('geom', django.contrib.gis.db.models.fields.PointField(srid=4326, geography=True)),
             ],
             options={
+                u'ordering': ('internal_id',),
+                u'unique_together': set([('id', 'jurisdiction')]),
                 u'abstract': False,
             },
             bases=(models.Model, open511.server.utils.serialization.XMLModelMixin),

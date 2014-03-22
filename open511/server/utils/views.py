@@ -15,7 +15,7 @@ from django.views.generic import View
 from lxml import etree
 from lxml.builder import E
 
-from open511_validator.converter import xml_to_json, json_link_key_to_xml_rel
+from open511.converter import xml_to_json, json_link_key_to_xml_rel
 
 from open511.server.utils.exceptions import BadRequest
 from open511.server.utils.http import accept_from_request, accept_language_from_request

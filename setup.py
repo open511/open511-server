@@ -7,11 +7,12 @@ setup(
     license = "",
     packages = find_packages(),
     dependency_links = [
-        'https://www.djangoproject.com/download/1.7b1/tarball/#egg=Django-1.7b1'
+        'https://www.djangoproject.com/download/1.7b1/tarball/#egg=Django-1.7b1',
+        'https://www.github.com/opennorth/open511/archive/master.zip#egg=open511',
     ],
     namespace_packages = ['open511'],
     install_requires = [
-        'open511-validator',
+        'open511>=0.2',
         'lxml>=2.3',
         'WebOb>=1.2,<2',
         'python-dateutil>=1.5,<2.0',
