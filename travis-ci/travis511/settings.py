@@ -126,7 +126,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'open511.server',
+    'open511_server',
     # 'django_open511_ui',
     'django.contrib.admin',
     'django.contrib.gis',

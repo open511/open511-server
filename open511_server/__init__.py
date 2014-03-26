@@ -1,0 +1,1 @@
+default_app_config = 'open511_server.apps.Open511ServerConfig'
