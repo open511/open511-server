@@ -15,4 +15,4 @@ before_script:
     - cd travis-ci
     - python manage.py migrate --noinput
 script:
-    - python manage.py test open511
+    - python manage.py test open511_server

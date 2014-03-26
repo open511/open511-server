@@ -20,11 +20,10 @@ import requests
 import pytz
 
 from open511.converter import json_struct_to_xml, geojson_to_gml
+from open511.utils.schedule import Schedule
 
 from open511_server.fields import XMLField
 from open511_server.utils import is_hex
-from open511_server.utils.cache import memoize_method
-from open511_server.utils.calendar import Schedule
 from open511_server.utils.postgis import gml_to_ewkt
 from open511_server.utils.serialization import (
     geom_to_xml_element, XML_LANG, XMLModelMixin, NSMAP,
