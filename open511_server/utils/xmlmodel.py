@@ -1,28 +1,16 @@
-from collections import namedtuple
 from copy import deepcopy
-import json
 
 from lxml import etree
 
-from django.contrib.gis.geos import GEOSGeometry
-from django.core.exceptions import ImproperlyConfigured
-from django.utils.translation import ugettext_lazy as _
-
 from open511.validator import validate
-from open511.converter import pluralize, geojson_to_gml
+from open511.converter import pluralize
+from open511.utils.serialization import GML_NS, XML_LANG, get_base_open511_element
 
 from open511_server.utils.http import DEFAULT_ACCEPT_LANGUAGE
 
-XML_LANG = '{http://www.w3.org/XML/1998/namespace}lang'
-XML_BASE = '{http://www.w3.org/XML/1998/namespace}base'
-GML_NS = 'http://www.opengis.net/gml'
-
-NSMAP = {
-    'gml': GML_NS,
-    'protected': 'http://open511.org/namespaces/internal-field'
-}
-
+ImproperlyConfigured = None
 try:
+    from django.core.exceptions import ImproperlyConfigured
     from open511_server.conf import settings
     DEFAULT_LANGUAGE = settings.LANGUAGE_CODE
     DEFAULT_VERSION = settings.OPEN511_DEFAULT_VERSION
@@ -32,46 +20,6 @@ except (ImportError, ImproperlyConfigured):
 
 etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)
-
-def geom_to_xml_element(geom):
-    """Transform a GEOS or OGR geometry object into an lxml Element
-    for the GML geometry."""
-    if geom.srs.srid != 4326:
-        raise NotImplementedError("Only WGS 84 lat/long geometries (SRID 4326) are supported.")
-    # GeoJSON output is far more standard than GML, so go through that
-    return geojson_to_gml(json.loads(geom.geojson))
-
-DataField = namedtuple('DataField', 'tag type name')
-ELEMENTS = [
-    DataField('headline', 'TEXT', _('Title')),
-    DataField('event_type', 'CHAR', _('Event type')),
-    DataField('description', 'TEXT', _('Description')),
-    DataField('severity', 'CHAR', _('Severity')),
-    DataField('traffic_restrictions', 'TEXT', _('Traffic Restrictions')),
-    DataField('detour', 'TEXT', _('Detour')),
-    DataField('road_name', 'TEXT', _('Road name')),
-    DataField('to', 'TEXT', _('To')),
-    DataField('from', 'TEXT', _('From')),
-    DataField('name', 'TEXT', _('Name')),
-]
-
-ELEMENTS_LOOKUP = dict((f.tag, f) for f in ELEMENTS)
-
-def get_base_open511_element(lang=None, base=None):
-    elem = etree.Element("open511", nsmap={
-        'gml': 'http://www.opengis.net/gml',
-    })
-    if lang:
-        elem.set(XML_LANG, lang)
-    if base:
-        elem.set(XML_BASE, base)
-    return elem
-
-def make_link(rel, href):
-    l = etree.Element('link')
-    l.set('rel', rel)
-    l.set('href', href)
-    return l
 
 class CannotChooseLanguageError(Exception):
     pass

@@ -2,8 +2,9 @@ from django.core import urlresolvers
 
 from lxml.builder import E
 
-from open511_server.models import Jurisdiction, RoadEvent, Camera, Area
-from open511_server.utils.serialization import make_link
+from open511.utils.serialization import make_link
+
+from open511_server.models import Jurisdiction, Camera, Area
 from open511_server.utils.views import APIView, Resource
 
 # This should eventually be turned into an autodiscovery of some kind

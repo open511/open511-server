@@ -1,6 +1,6 @@
 # encoding: utf8
 from django.db import models, migrations
-import open511_server.utils.serialization
+import open511_server.utils.xmlmodel
 import django.contrib.gis.db.models.fields
 import open511_server.fields
 import open511_server.models
@@ -30,6 +30,6 @@ class Migration(migrations.Migration):
                 u'unique_together': set([('id', 'jurisdiction')]),
                 u'abstract': False,
             },
-            bases=(models.Model, open511_server.utils.serialization.XMLModelMixin),
+            bases=(models.Model, open511_server.utils.xmlmodel.XMLModelMixin),
         ),
     ]

@@ -10,11 +10,12 @@ from django.db import transaction
 from lxml import etree
 import requests
 
+from open511.utils.serialization import XML_LANG, XML_BASE
 from open511.validator import Open511ValidationError
 
 from open511_server.conf import settings
 from open511_server.models import RoadEvent, Jurisdiction, Camera
-from open511_server.utils.serialization import XML_LANG, XML_BASE
+
 
 logger = logging.getLogger(__name__)
 
