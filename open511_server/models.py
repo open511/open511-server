@@ -303,7 +303,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
 
         if fake_links:
             el.insert(0, E.id('xxx.yyy/x%s' % self.id))
-            el.insert(0, make_link('jurisdiction', '/xxx'))
+            el.insert(0, make_link('jurisdiction', 'http://example.org/xxx'))
             el.insert(0, make_link('self', '/xxx/yyy'))
         else:
             el.insert(0, E.id(self.full_id))
