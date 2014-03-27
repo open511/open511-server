@@ -4,7 +4,6 @@ python:
 virtualenv:
     system_site_packages: true
 before_install:
-    - "sudo apt-get update -qq"
     - "sudo apt-get install -qq libgeos-dev libproj-dev gdal-bin python-psycopg2 python-lxml"
 install:
     - "pip install -r travis-ci/requirements.txt"

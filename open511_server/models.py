@@ -19,10 +19,9 @@ from lxml.builder import E
 import requests
 import pytz
 
-from open511.converter import json_struct_to_xml, geojson_to_gml
+from open511.converter import json_struct_to_xml, geojson_to_gml, geom_to_xml_element
 from open511.utils.schedule import Schedule
-from open511.utils.serialization import (
-    geom_to_xml_element, XML_LANG, NSMAP, make_link)
+from open511.utils.serialization import XML_LANG, NSMAP, make_link
 
 from open511_server.fields import XMLField
 from open511_server.utils import is_hex
