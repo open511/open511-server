@@ -6,7 +6,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^api/', include('open511.urls')),
+    url(r'^api/', include('open511_server.urls')),
 )
 
 urlpatterns += staticfiles_urlpatterns()

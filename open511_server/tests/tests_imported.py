@@ -13,5 +13,5 @@ try:
     )
     from open511_api_tests import *
 except ImportError:
-    logging.warning("Could not import tests from the open511-api-tests package. Perhaps you need to install it?")
+    logging.exception("Could not import tests from the open511-api-tests package. Perhaps you need to install it?")
 
