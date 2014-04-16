@@ -1,10 +1,10 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.gis import admin
+from django.contrib import admin
+from django.contrib.gis.db import models
 from django import forms
 
 from open511_server.models import RoadEvent, Jurisdiction, JurisdictionGeography, Area, Camera
-
 
 
 class BaseRoadEventForm(forms.BaseModelForm):
@@ -44,9 +44,14 @@ class RoadEventAdmin(admin.ModelAdmin):
 class JurisdictionAdmin(admin.ModelAdmin):
     filter_horizontal = ['permitted_users']
 
+class JurisdictionGeographyAdmin(admin.ModelAdmin):
+    formfield_overrides = {
+        models.GeometryField: {'widget': forms.widgets.Textarea }
+    }
+
 admin.site.register(RoadEvent, RoadEventAdmin)
 admin.site.register(Jurisdiction, JurisdictionAdmin)
-admin.site.register(JurisdictionGeography)
+admin.site.register(JurisdictionGeography, JurisdictionGeographyAdmin)
 admin.site.register(Area)
 admin.site.register(Camera)
 
