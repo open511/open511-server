@@ -3,22 +3,32 @@
 <head>
 	<title>{% block pagetitle %}Open511{% endblock %}</title>
 	<link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}open511/vendor/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Montserrat">
 	<style type="text/css">
 	{% block css %}
+		h1 {
+			font-family: Montserrat, Helvetica;
+			margin-bottom: 20px;
+		}
 		#header {
 			height: 50px;
-			padding: 1px 10px;
-			background-color: #AFF59F;
-			border-bottom: 2px solid #5bb053;
+			padding-bottom: 20px;
+			background-color: #1d1d1b;
+			border-bottom: 2px solid #666666;
+			/*text-transform: uppercase;*/
 		}
-		#header #logo {
-			padding: 6px 20px 0 8px;
+		#header .title {
+			padding-left: 40px;
+			color: #BBBBBB;
+			font-size: 22px;
+			position: relative;
+			top: 4px;
 		}
-		#content {
+		#content, #header div.inside {
 			max-width: 960px;
 			margin-left: auto;
 			margin-right: auto;
-			margin-top: 20px;
+			padding-top: 20px;
 		}
 		p {
 			font-size: 110%;
@@ -28,7 +38,7 @@
 	{% block headextra %}{% endblock %}
 </head>
 <body>
-	<div id="header"><h1><a href="/"><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"></a> <small>{% block headertitle %}{% endblock %}</small></h1></div>
+	<div id="header"><div class="inside"><h1><a href="/"><img id="logo" src="{{ STATIC_URL }}open511/logotype.png"></a> <span class="title">{% block headertitle %}{% endblock %}</span></h1></div></div>
 	<div id="content">
 		{% block content %}{% endblock %}
 	</div>
