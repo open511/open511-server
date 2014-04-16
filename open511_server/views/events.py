@@ -95,22 +95,8 @@ class RoadEventListView(CommonListView):
             remove_internal_elements=not can(request, 'view_internal')
         )
 
+
     def post(self, request):
-        if 'application/json' in request.META['CONTENT_TYPE']:
-            return self.post_to_create(request)
-
-        opts = request.POST.copy()
-        if 'geography' in opts and len(opts['geography']) > 1000:
-            sgeom = SearchGeometry.fromstring(opts['geography'])
-            sgeom.save()
-            opts['geography'] = sgeom.id
-
-        return HttpResponseRedirect('?' + opts.urlencode())
-
-
-    def post_to_create(self, request):
-        if not request.user.is_authenticated():
-            raise PermissionDenied
         content = json.loads(request.body)
 
         jurisdiction_id = content.pop('jurisdiction_id')
@@ -140,7 +126,6 @@ class RoadEventView(APIView):
         return HttpResponseNotAllowed(['GET', 'PATCH', 'DELETE'])
 
     def patch(self, request, jurisdiction_id, id):
-        # FIXME security, abstraction
         rdev = get_object_or_404(RoadEvent, jurisdiction__id=jurisdiction_id, id=id)
         updates = json.loads(request.body)
 

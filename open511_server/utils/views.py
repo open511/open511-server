@@ -1,7 +1,6 @@
 import json
 import re
 import time
-import urlparse
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseBadRequest
@@ -19,6 +18,7 @@ from open511.converter import xml_to_json, json_link_key_to_xml_rel
 from open511.utils.serialization import get_base_open511_element, make_link
 
 from open511_server.utils.exceptions import BadRequest
+from open511_server.utils.auth import can
 from open511_server.utils.http import accept_from_request, accept_language_from_request
 from open511_server.utils.pagination import APIPaginator
 
@@ -56,10 +56,14 @@ class APIView(View):
 
     def dispatch(self, request, *args, **kwargs):
 
-        if request.method not in self.unauthenticated_methods and not request.user.is_authenticated():
-            resp = HttpResponse("You need to be logged in to do that.", content_type='text/plain')
-            resp.status_code = 401
-            return resp
+        if request.method not in self.unauthenticated_methods:
+            if not (
+                    can(request, 'modify_data') and 
+                    (request.META['CONTENT_TYPE'].strip().startswith('application/json') 
+                        or request.method == 'DELETE')):
+                resp = HttpResponse("You need to be logged in to do that.", content_type='text/plain')
+                resp.status_code = 401
+                return resp
 
         request.pretty_print = bool(request.GET.get('indent'))
         request.response_format = self.determine_response_format(request)
