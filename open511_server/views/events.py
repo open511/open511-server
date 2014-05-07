@@ -58,6 +58,8 @@ class RoadEventListView(CommonListView):
         'POST',)
 
     def post_filter(self, request, qs):
+        if request.REQUEST.get('in_effect_on'):
+            qs = qs.filter(active=True)
         objects = super(RoadEventListView, self).post_filter(request, qs)
 
         if 'in_effect_on' in request.REQUEST:
