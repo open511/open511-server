@@ -59,8 +59,9 @@ class APIView(View):
         if request.method not in self.unauthenticated_methods:
             if not (
                     can(request, 'modify_data') and 
-                    (request.META['CONTENT_TYPE'].strip().startswith('application/json') 
-                        or request.method == 'DELETE')):
+                    (request.method == 'DELETE' or
+                        request.META.get('CONTENT_TYPE').strip().startswith('application/json'))
+                    ):
                 resp = HttpResponse("You need to be logged in to do that.", content_type='text/plain')
                 resp.status_code = 401
                 return resp
@@ -216,7 +217,6 @@ class APIView(View):
         #     else:
         #         m['up_url'] = urlparse.urljoin(request.path, '../')
         return m
-
 
 class ModelListAPIView(APIView):
 
