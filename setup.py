@@ -7,7 +7,6 @@ setup(
     license = "",
     packages = find_packages(),
     dependency_links = [
-        'https://www.djangoproject.com/download/1.7b1/tarball/#egg=Django-1.7b1',
         'https://www.github.com/opennorth/open511/archive/master.zip#egg=open511-0.3',
     ],
     install_requires = [
@@ -19,6 +18,6 @@ setup(
         'pytz>=2013b',
         'django-appconf==0.5',
         'cssselect==0.8',
-        'Django>=1.7b1'
+        'Django>=1.7,<1.8'
     ],
 )
