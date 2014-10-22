@@ -18,6 +18,6 @@ setup(
         'pytz>=2013b',
         'django-appconf==0.5',
         'cssselect==0.8',
-        'Django>=1.7,<1.8'
+        'Django>=1.7.1,<1.8'
     ],
 )
