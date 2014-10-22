@@ -467,7 +467,7 @@ class RoadEvent(_Open511CommonModel):
             timezone = pytz.timezone(tzname)
         else:
             timezone = Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id)
-        return Schedule(sched, timezone)
+        return Schedule.from_element(sched, timezone)
 
     def has_remaining_periods(self):
         return self.schedule.has_remaining_periods()
