@@ -16,6 +16,9 @@ def convert_schedule(orig_schedule):
             specific = child.xpath('specific_dates/specific_date/text()')
         else:
             child.tag = 'recurring_schedule'
+            for sched_tag in child:
+                if sched_tag.tag in ('start_time', 'end_time'):
+                    sched_tag.tag = 'daily_' + sched_tag.tag
             recurring.append(child)
     if len(recurring):
         nu.append(recurring)
