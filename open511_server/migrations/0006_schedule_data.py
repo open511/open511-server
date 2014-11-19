@@ -20,7 +20,7 @@ def convert_schedule(orig_schedule):
     if len(recurring):
         nu.append(recurring)
         if specific:
-            nu.append(E.exceptions(*[E.exception(s) for s in specific]))
+            nu.append(E.exceptions(*[E.exception(str(s)) for s in specific]))
     elif specific:
         # We have exceptions but no recurring schedules.
         intervals = E.intervals()
