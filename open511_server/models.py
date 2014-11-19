@@ -459,7 +459,7 @@ class RoadEvent(_Open511CommonModel):
 
     @property
     def schedule(self):
-        sched = self.xml_elem.find('schedules')
+        sched = self.xml_elem.find('schedule')
         if sched is None:
             raise ValidationError("Schedule is required")
         tzname = self.xml_elem.findtext('timezone')
