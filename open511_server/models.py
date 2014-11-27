@@ -470,7 +470,7 @@ class RoadEvent(_Open511CommonModel):
         return Schedule.from_element(sched, timezone)
 
     def has_remaining_periods(self):
-        return self.schedule.has_remaining_periods()
+        return self.schedule.has_remaining_intervals()
     has_remaining_periods.boolean = True
 
     def auto_label_areas(self):
