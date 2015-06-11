@@ -7,7 +7,7 @@ setup(
     license = "",
     packages = find_packages(),
     dependency_links = [
-        'https://www.github.com/opennorth/open511/archive/master.zip#egg=open511-0.3',
+        'https://www.github.com/open511/open511/archive/master.zip#egg=open511-0.3',
     ],
     install_requires = [
         'open511>=0.3',
