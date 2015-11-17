@@ -1,3 +1,8 @@
+try:
+    unicode
+except NameError:
+    unicode = str
+
 from django.db import connection, transaction
 from django.db.utils import DatabaseError
 

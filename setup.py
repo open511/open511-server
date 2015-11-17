@@ -12,12 +12,12 @@ setup(
     install_requires = [
         'open511>=0.3',
         'lxml>=2.3',
-        'WebOb>=1.2,<2',
-        'python-dateutil>=1.5,<2.0',
-        'requests>=1.2,<2',
+        'WebOb==1.5.1',
+        'python-dateutil==2.4.2',
+        'requests==2.8.1',
         'pytz>=2013b',
-        'django-appconf==0.5',
+        'django-appconf==1.0.1',
         'cssselect==0.8',
-        'Django>=1.7.1,<1.8'
+        'Django==1.9rc1',
     ],
 )

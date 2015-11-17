@@ -1,3 +1,8 @@
+try:
+    unicode
+except NameError:
+    unicode = str
+
 from copy import deepcopy
 
 from lxml import etree

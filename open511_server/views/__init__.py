@@ -1,3 +1,8 @@
+try:
+    from functools import reduce
+except ImportError:
+    pass
+
 import operator
 
 from django.contrib.gis.geos import Polygon
@@ -80,9 +85,9 @@ class CommonListView(ModelListAPIView):
 
     def post_filter(self, request, qs):
         objects = super(CommonListView, self).post_filter(request, qs)
-        if 'geography' in request.REQUEST and 'geography' in self.filters:
-            objects = CommonFilters.geography(objects, request.REQUEST['geography'],
-                within=request.REQUEST.get('tolerance'))  
+        if 'geography' in request.GET and 'geography' in self.filters:
+            objects = CommonFilters.geography(objects, request.GET['geography'],
+                within=request.GET.get('tolerance'))
 
         return objects
 
@@ -96,4 +101,4 @@ class CommonListView(ModelListAPIView):
     def object_to_xml(self, request, obj):
         return obj.to_full_xml_element(
             accept_language=request.accept_language,
-        )        
+        )

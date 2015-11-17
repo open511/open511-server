@@ -54,20 +54,17 @@ class RoadEventListView(CommonListView):
         'in_effect_on': None,  # dealt with in post_filter
     }
 
-    unauthenticated_methods = ModelListAPIView.unauthenticated_methods + (
-        'POST',)
-
     def post_filter(self, request, qs):
-        if request.REQUEST.get('in_effect_on'):
+        if request.GET.get('in_effect_on'):
             qs = qs.filter(active=True)
         objects = super(RoadEventListView, self).post_filter(request, qs)
 
-        if 'in_effect_on' in request.REQUEST:
+        if 'in_effect_on' in request.GET:
             # FIXME inefficient - implement on DB
-            if request.REQUEST['in_effect_on'] == 'now':
+            if request.GET['in_effect_on'] == 'now':
                 start, end = utc.localize(datetime.datetime.utcnow()), None
             else:
-                raw_start, _, raw_end = request.REQUEST['in_effect_on'].partition(',')
+                raw_start, _, raw_end = request.GET['in_effect_on'].partition(',')
                 start = dateutil.parser.parse(raw_start)
                 end = dateutil.parser.parse(raw_end) if raw_end else None
             if end:
@@ -85,7 +82,7 @@ class RoadEventListView(CommonListView):
         if not can(request, 'view_internal'):
             qs = qs.filter(published=True)
 
-        if 'status' not in request.REQUEST:
+        if 'status' not in request.GET:
             # By default, show only active events
             qs = qs.filter(active=True)
 
@@ -96,7 +93,6 @@ class RoadEventListView(CommonListView):
             accept_language=request.accept_language,
             remove_internal_elements=not can(request, 'view_internal')
         )
-
 
     def post(self, request):
         content = json.loads(request.body)

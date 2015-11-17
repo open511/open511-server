@@ -3,6 +3,7 @@ To be executed in a cron job: finds all unpublished events with a
 <protected:publish_on> date of today or earlier, and publishes
 them.
 """
+from __future__ import print_function
 
 import datetime
 
@@ -28,5 +29,5 @@ class Command(BaseCommand):
             count += 1
 
         if count:
-            print '%s event%s published' % (count, 's' if count > 1 else '')
+            print('%s event%s published' % (count, 's' if count > 1 else ''))
 

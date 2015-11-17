@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import unicode_literals, print_function
 
 from django.db import models, migrations
 
@@ -45,7 +45,7 @@ def update_schedule_data(apps, schema_editor):
         try:
             old_sched = elem.xpath('schedules')[0]
         except IndexError:
-            print etree.tostring(elem)
+            print(etree.tostring(elem))
             raise
         new_sched = convert_schedule(old_sched)
         elem.remove(old_sched)

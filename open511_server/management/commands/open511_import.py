@@ -1,7 +1,12 @@
+from __future__ import print_function
+
 import logging
 from optparse import make_option
 import re
-from urlparse import urljoin
+try:
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urljoin
 
 from django.core.exceptions import (ValidationError, ImproperlyConfigured)
 from django.core.management.base import BaseCommand
@@ -94,7 +99,7 @@ class Command(BaseCommand):
                 id__in=[rdev.id for rdev in created]).update(active=False)
             msg += " %s events archived." % updated
 
-        print msg
+        print(msg)
 
     def fetch_from_url(self, url):
         resp = requests.get(url, headers={

@@ -1,6 +1,14 @@
+try:
+    unicode
+except NameError:
+    unicode = str
+
 from copy import deepcopy
 import datetime
-from urlparse import urljoin
+try:
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urljoin
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -229,7 +237,7 @@ class _Open511CommonManager(models.GeoManager):
 
         # Extract the geometry
         geometry = el.xpath('geography')[0]
-        gml = etree.tostring(geometry[0])
+        gml = etree.tostring(geometry[0], encoding='unicode')
         ewkt = gml_to_ewkt(gml, force_2D=True)
         obj.geom = geos_geom_from_string(ewkt)
 
@@ -437,7 +445,7 @@ class RoadEvent(_Open511CommonModel):
                 gml = val
             else:
                 gml = geojson_to_gml(val)
-            wkt = gml_to_ewkt(etree.tostring(gml))
+            wkt = gml_to_ewkt(etree.tostring(gml, encoding='unicode'))
             self.geom = geos_geom_from_string(wkt)
             update_el.clear()
             update_el.append(gml)
@@ -478,7 +486,7 @@ class RoadEvent(_Open511CommonModel):
         """Based on geometry, include any matching Areas we know about."""
         areas = Area.objects.filter(auto_label=True, geom__intersects=self.geom)
         for area in areas:
-            if self.xml_elem.xpath('areas/area/area_id[text()="%s"]' % area.geonames_id):
+            if self.xml_elem.xpath('areas/area/area_id[text()="%s"]' % area.id):
                 continue
             try:
                 areas_el = self.xml_elem.xpath('areas')[0]

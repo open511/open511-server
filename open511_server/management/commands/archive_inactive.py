@@ -2,6 +2,7 @@
 To be executed in a cron job: find all ACTIVE events which don't have
 any scheduled times in the future and archives them.
 """
+from __future__ import print_function
 
 from django.core.management.base import BaseCommand
 
@@ -24,4 +25,4 @@ class Command(BaseCommand):
             count = RoadEvent.objects.filter(active=True, id__in=ids_to_deactivate).update(active=False)
 
         if count:
-            print '%s event%s archived' % (count, 's' if count > 1 else '')
+            print('%s event%s archived' % (count, 's' if count > 1 else ''))

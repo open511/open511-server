@@ -1,3 +1,8 @@
+try:
+    unicode
+except NameError:
+    unicode = str
+
 import json
 import re
 import time
