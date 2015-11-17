@@ -1,7 +1,8 @@
 try:
+    unicode
+except NameError:
+    unicode = str
     from functools import reduce
-except ImportError:
-    pass
 
 import operator
 
@@ -20,7 +21,7 @@ class CommonFilters(object):
     @staticmethod
     def xpath(xpath, qs, value, typecast='text', allow_list=True):
         if allow_list:
-            if isinstance(value, basestring):
+            if isinstance(value, (str, unicode)):
                 value = value.split(',')
         else:
             value = [value]

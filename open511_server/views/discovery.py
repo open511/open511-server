@@ -48,5 +48,3 @@ class DiscoveryView(APIView):
         ])
 
         return Resource([jurisdictions, services])
-
-discovery = DiscoveryView.as_view()

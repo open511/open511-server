@@ -37,6 +37,3 @@ class CameraView(APIView):
         return Resource(E.events(obj.to_full_xml_element(
             accept_language=request.accept_language,
         )))
-
-list_cameras = CameraListView.as_view()
-camera = CameraView.as_view()

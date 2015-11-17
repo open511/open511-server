@@ -438,7 +438,7 @@ class RoadEvent(_Open511CommonModel):
 
         if val is None:
             update_el.getparent().remove(update_el)
-        elif isinstance(val, basestring):
+        elif isinstance(val, (str, unicode)):
             update_el.text = val
         elif key == 'geography':
             if 'opengis' in getattr(val, 'tag', ''):

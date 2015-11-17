@@ -42,9 +42,6 @@ class TestEndpointView(View):
         for event in root.xpath('events/event'):
             RoadEvent.objects.update_or_create_from_xml(event, **opts)
 
-test_endpoint = TestEndpointView.as_view()
-
-
 def execute_test_endpoint_command(command, **kwargs):
     class DummyRequest(object):
         pass

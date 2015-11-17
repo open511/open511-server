@@ -114,7 +114,7 @@ class XMLModelMixin(object):
         if not self.FREE_TEXT_TAGS:
             raise CannotChooseLanguageError("No list of free-text tags")
         test_tag = self.FREE_TEXT_TAGS[0]
-        languages = self._get_text_elems(test_tag, self.xml_elem).keys()
+        languages = list(self._get_text_elems(test_tag, self.xml_elem).keys())
         if not languages:
             raise CannotChooseLanguageError("%s is required" % test_tag)
         best_match = accept.best_match(languages, default_match=None)

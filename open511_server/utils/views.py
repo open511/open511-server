@@ -186,14 +186,14 @@ class APIView(View):
         ctx = {
             'response_format': request.response_format.split('/')[1],
             'response_content': mark_safe(response_content),
-            'get_params': request.GET.items(),
+            'get_params': list(request.GET.items()),
         }
 
         if 'accept-language' not in request.GET:
             ctx['get_params'] += [['accept-language', unicode(request.accept_language)]]
 
         ctx['available_filters'] = [k for k in
-            ['version', 'limit', 'fields'] + getattr(self, 'filters', {}).keys()
+            ['version', 'limit', 'fields'] + list(getattr(self, 'filters', {}).keys())
             if k not in request.GET
         ]
 

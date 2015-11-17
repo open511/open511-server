@@ -14,6 +14,3 @@ class AreaListView(ModelListAPIView):
 
     def object_to_xml(self, request, obj):
         return obj.remove_unnecessary_languages(request.accept_language)
-
-
-list_areas = AreaListView.as_view()
