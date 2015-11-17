@@ -25,6 +25,7 @@ from open511.utils.serialization import XML_LANG, NSMAP, make_link
 
 from open511_server.fields import XMLField
 from open511_server.utils import is_hex
+from open511_server.utils.optimization import get_cached_object, memoize_method
 from open511_server.utils.postgis import gml_to_ewkt
 from open511_server.utils.xmlmodel import XMLModelMixin
 
@@ -111,11 +112,6 @@ class JurisdictionManager(models.GeoManager):
         jur.save()
         return jur
 
-    def get_default_timezone_for(self, internal_id):
-        # FIXME cache
-        return self.get(pk=internal_id).default_timezone
-
-
 class Jurisdiction(_Open511Model, XMLModelMixin):
 
     internal_id = models.AutoField(primary_key=True)
@@ -168,6 +164,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         return self.get_text_value('name')
 
     @property
+    @memoize_method
     def default_timezone(self):
         tzname = self.xml_elem.findtext('timezone')
         return pytz.timezone(tzname) if tzname else None
@@ -228,7 +225,7 @@ class _Open511CommonManager(models.GeoManager):
         self_link = el.xpath('link[@rel="self"]')
         if self_link:
             obj.external_url = urljoin(base_url, self_link[0].get('href'))
-            el.remove(self_link[0])            
+            el.remove(self_link[0])
 
         # Extract the geometry
         geometry = el.xpath('geography')[0]
@@ -274,10 +271,14 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
 
     @property
     def full_id(self):
-        return u'/'.join((self.jurisdiction.id, self.id))
+        return u'/'.join((self.cached_jurisdiction.id, self.id))
+
+    @property
+    def cached_jurisdiction(self):
+        return get_cached_object(Jurisdiction, self.jurisdiction_id)
 
     def clean(self):
-        self.validate_xml()        
+        self.validate_xml()
 
     def save(self, force_insert=False, force_update=False, using=None):
         self.xml_data = etree.tostring(self.xml_elem)
@@ -294,7 +295,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
             self.id = self.internal_id
 
     def to_full_xml_element(self, accept_language=None,
-        fake_links=False, remove_internal_elements=False):
+            fake_links=False, remove_internal_elements=False):
 
         el = deepcopy(self.xml_elem)
 
@@ -304,7 +305,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
             el.insert(0, make_link('self', '/xxx/yyy'))
         else:
             el.insert(0, E.id(self.full_id))
-            el.insert(0, make_link('jurisdiction', self.jurisdiction.full_url))
+            el.insert(0, make_link('jurisdiction', self.cached_jurisdiction.full_url))
             el.insert(0, make_link('self', self.url))
 
         if remove_internal_elements:
@@ -316,7 +317,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
         return el
 
     def get_validation_xml(self):
-        return self.to_full_xml_element(fake_links=True)        
+        return self.to_full_xml_element(fake_links=True)
 
     def _get_or_create_el(self, path, parent=None):
         if parent is None:
@@ -338,7 +339,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
             parent.append(el)
             return el
         elif len(els) > 1:
-            raise NotImplementedError        
+            raise NotImplementedError
 
 class RoadEventManager(_Open511CommonManager):
     def update_or_create_from_xml(self, el,
@@ -390,7 +391,7 @@ class RoadEvent(_Open511CommonModel):
 
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_roadevent', kwargs={
-            'jurisdiction_id': self.jurisdiction.id,
+            'jurisdiction_id': self.cached_jurisdiction.id,
             'id': self.id}
         )
 
@@ -466,7 +467,7 @@ class RoadEvent(_Open511CommonModel):
         if tzname:
             timezone = pytz.timezone(tzname)
         else:
-            timezone = Jurisdiction.objects.get_default_timezone_for(self.jurisdiction_id)
+            timezone = self.cached_jurisdiction.default_timezone
         return Schedule.from_element(sched, timezone)
 
     def has_remaining_periods(self):
@@ -534,7 +535,7 @@ class Camera(_Open511CommonModel):
 
     def get_absolute_url(self):
         return urlresolvers.reverse('open511_camera', kwargs={
-            'jurisdiction_id': self.jurisdiction.id,
+            'jurisdiction_id': self.cached_jurisdiction.id,
             'id': self.id}
         )        
 
