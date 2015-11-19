@@ -95,7 +95,8 @@ class RoadEventListView(CommonListView):
         )
 
     def post(self, request):
-        content = json.loads(request.body.decode(request.encoding))
+        content = json.loads(request.body.decode(
+            request.encoding if request.encoding else 'utf-8'))
 
         jurisdiction_id = content.pop('jurisdiction_id')
         jurisdiction = Jurisdiction.objects.get(id=jurisdiction_id)
@@ -125,7 +126,8 @@ class RoadEventView(APIView):
 
     def patch(self, request, jurisdiction_id, id):
         rdev = get_object_or_404(RoadEvent, jurisdiction__id=jurisdiction_id, id=id)
-        updates = json.loads(request.body.decode(request.encoding))
+        updates = json.loads(request.body.decode(
+            request.encoding if request.encoding else 'utf-8'))
 
         if not rdev.jurisdiction.can_edit(request.user):
             raise PermissionDenied
