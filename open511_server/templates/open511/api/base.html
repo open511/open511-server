@@ -1,8 +1,8 @@
 {% extends "open511/base.html" %}
-{% load open511 %}
+{% load open511 i18n %}
 
 {% block pagetitle %}Open511 API{% endblock %}
-{% block headertitle %}API Browser{% endblock %}
+{% block headertitle %}{% trans "API Browser" %}{% endblock %}
 {% block css %}
 {{ block.super }}
 /*		#code_body {
@@ -128,15 +128,14 @@ pre .clojure .title {
 
 {% block content %}
 		{% if resource_name %}
-			<p>This is a 
-			{% if is_list %}list of <strong>{{ resource_name_plural }}</strong>{% else %}<strong>{{ resource_name }}</strong> resource{% endif %}. <a href="http://open511.org/documentation.html">Read the API documentation.</a> </p> 
+			<p>{% if is_list %}{% blocktrans %}This is a list of <strong>{{ resource_name_plural }}</strong>.{% endblocktrans %}{% else %}{% blocktrans %}This is a <strong>{{ resource_name }}</strong> resource.{% endblocktrans %}{% endif %} <a href="http://open511.org/documentation/1.0/">{% trans "Read the API documentation." %}</a> </p> 
 		{% endif %}
 		<form method="GET"><div id="filters">
-			<h4><a href="" class="show-filters">Parameters &rarr;</a></h4>
+			<h4><a href="" class="show-filters">{% trans "Parameters" %} &rarr;</a></h4>
 			<table class="table" style="display:none">
 				<tr class="controls" style="visibility:hidden">
 					<th><a href="" class="add-row">+</a></th>
-					<td><input type="submit" class="btn btn-success" value="Update"></td>
+					<td><input type="submit" class="btn btn-success" value="{% trans "Update" %}"></td>
 					<td></td>
 				</tr>
 			</table>

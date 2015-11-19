@@ -1,0 +1,94 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-11-19 13:33-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: models.py:141
+msgid "Jurisdiction"
+msgstr "Juridiction"
+
+#: models.py:142
+msgid "Jurisdictions"
+msgstr "Juridictions"
+
+#: models.py:197
+msgid "Jurisdiction geography"
+msgstr "Géographie de la juridiction"
+
+#: models.py:198
+msgid "Géographies des juridictions"
+msgstr ""
+
+#: models.py:389
+msgid "Geometry"
+msgstr "Géometrie"
+
+#: models.py:400
+msgid "Road event"
+msgstr "Événement routier"
+
+#: models.py:401
+msgid "Road events"
+msgstr "Événements routiers"
+
+#: models.py:524
+msgid "Area"
+msgstr "Région"
+
+#: models.py:525
+msgid "Areas"
+msgstr "Régions"
+
+#: models.py:554
+msgid "Camera"
+msgstr "Caméra"
+
+#: models.py:555
+msgid "Cameras"
+msgstr "Caméras"
+
+#: templates/open511/api/base.html:5
+msgid "API Browser"
+msgstr "Navigateur API"
+
+#: templates/open511/api/base.html:131
+#, python-format
+msgid "This is a list of <strong>%(resource_name_plural)s</strong>."
+msgstr ""
+"Ceci est une liste de ressources <strong>%(resource_name_plural)s</strong>."
+
+#: templates/open511/api/base.html:131
+#, python-format
+msgid "This is a <strong>%(resource_name)s</strong> resource."
+msgstr "Ceci est une ressource <strong>%(resource_name)s</strong>."
+
+#: templates/open511/api/base.html:131
+msgid "Read the API documentation."
+msgstr "Lire la documentation de l'API."
+
+#: templates/open511/api/base.html:134
+msgid "Parameters"
+msgstr "Paramètres"
+
+#: templates/open511/api/base.html:138
+msgid "Update"
+msgstr "Mettre à jour"
+
+#: views/discovery.py:33
+msgid "discovery"
+msgstr "découverte"

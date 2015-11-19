@@ -21,7 +21,7 @@ try:
     DEFAULT_VERSION = settings.OPEN511_DEFAULT_VERSION
 except (ImportError, ImproperlyConfigured):
     DEFAULT_LANGUAGE = 'en'
-    DEFAULT_VERSION = 'v0'
+    DEFAULT_VERSION = 'v1'
 
 etree.register_namespace('gml', GML_NS)
 parser = etree.XMLParser(remove_blank_text=True)

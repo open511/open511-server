@@ -6,9 +6,6 @@ setup(
     url='',
     license = "",
     packages = find_packages(),
-    dependency_links = [
-        'https://www.github.com/open511/open511/archive/master.zip#egg=open511-0.3',
-    ],
     install_requires = [
         'open511>=0.5',
         'lxml>=2.3',

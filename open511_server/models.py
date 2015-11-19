@@ -10,7 +10,6 @@ try:
 except ImportError:
     from urllib.parse import urljoin
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.db import models
 from django.contrib.gis.geos import fromstr as geos_geom_from_string
@@ -31,6 +30,7 @@ from open511.converter import json_struct_to_xml, geojson_to_gml, geom_to_xml_el
 from open511.utils.schedule import Schedule
 from open511.utils.serialization import XML_LANG, NSMAP, make_link
 
+from open511_server.conf import settings
 from open511_server.fields import XMLField
 from open511_server.utils import is_hex
 from open511_server.utils.optimization import get_cached_object, memoize_method
@@ -137,6 +137,10 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
 
     FREE_TEXT_TAGS = ['name', 'description']
 
+    class Meta(object):
+        verbose_name = _('Jurisdiction')
+        verbose_name_plural = _('Jurisdictions')
+
     def __unicode__(self):
         return self.id
 
@@ -190,7 +194,8 @@ class JurisdictionGeography(models.Model):
     objects = models.GeoManager()
 
     class Meta:
-        verbose_name_plural = 'Jurisdiction geographies'
+        verbose_name = _('Jurisdiction geography')
+        verbose_name_plural = _('Jurisdiction geographies')
 
     def __unicode__(self):
         return u"Geography for %s" % self.jurisdiction
@@ -391,6 +396,10 @@ class RoadEvent(_Open511CommonModel):
         'headline', 'description', 'detour', 'road_name', 'from', 'to', 'area_name'
     ]
 
+    class Meta:
+        verbose_name = _('Road event')
+        verbose_name_plural = _('Road events')
+
     def __init__(self, *args, **kwargs):
         lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
         super(RoadEvent, self).__init__(*args, **kwargs)
@@ -511,6 +520,10 @@ class Area(_Open511Model, XMLModelMixin):
 
     FREE_TEXT_TAGS = ['name']
 
+    class Meta:
+        verbose_name = _('Area')
+        verbose_name_plural = _('Areas')
+
     @property
     def name(self):
         return self.get_text_value('name')
@@ -536,6 +549,10 @@ class Camera(_Open511CommonModel):
     objects = _Open511CommonManager()
 
     FREE_TEXT_TAGS = ['name']
+
+    class Meta:
+        verbose_name = _('Camera')
+        verbose_name_plural = _('Cameras')
 
     @property
     def name(self):
