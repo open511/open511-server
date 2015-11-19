@@ -1,13 +1,15 @@
 language: python
 python:
     - "2.7"
-virtualenv:
-    system_site_packages: true
+    - "3.5"
 before_install:
-    - "sudo apt-get update"
-    - "sudo apt-get install -qq libgeos-dev libproj-dev python-psycopg2 python-lxml"
+    - "sudo apt-get install -qq libgeos-dev libproj-dev"
 install:
     - "pip install -r travis-ci/requirements.txt"
+cache:
+    directories:
+        - $HOME/.cache/pip
+        - $HOME/.pip-cache
 before_script:
     - createdb -U postgres open511
     - psql -U postgres -d open511 -c "CREATE EXTENSION postgis"

@@ -130,6 +130,5 @@ INSTALLED_APPS = (
     # 'django_open511_ui',
     'django.contrib.admin',
     'django.contrib.gis',
-    'django_extensions'
 )
 

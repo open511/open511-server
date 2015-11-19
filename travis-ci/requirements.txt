@@ -1,3 +1,2 @@
 psycopg2
 -e git+https://github.com/open511/open511-api-tests.git#egg=open511-api-tests
-django-extensions
