@@ -1,5 +1,5 @@
 {% extends "open511/base.html" %}
-{% load open511 i18n %}
+{% load open511 i18n staticfiles %}
 
 {% block pagetitle %}Open511 API{% endblock %}
 {% block headertitle %}{% trans "API Browser" %}{% endblock %}
@@ -149,9 +149,9 @@ pre .clojure .title {
 {% endblock content %}
 
 {% block js %}
-<script src="{{ STATIC_URL }}open511/vendor/highlight.min.js"></script>
-<script src="{{ STATIC_URL }}open511/vendor/jquery.min.js"></script>
-<script src="{{ STATIC_URL }}open511/vendor/underscore.min.js"></script>
+<script src="{% static "open511/vendor/highlight.min.js" %}"></script>
+<script src="{% static "open511/vendor/jquery.min.js" %}"></script>
+<script src="{% static "open511/vendor/underscore.min.js" %}"></script>
 <script type="text/javascript">
 hljs.initHighlightingOnLoad();
 $(function() {
