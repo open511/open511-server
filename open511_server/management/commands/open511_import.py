@@ -31,10 +31,10 @@ RESOURCE_TYPES = [
 
 class Command(BaseCommand):
 
-    option_list = BaseCommand.option_list + (
-        make_option('--archive', action='store_true', dest='archive',
-            help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.'),
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('source', type=str, help='Path or URL to the Open511 data to import')
+        parser.add_argument('--archive', action='store_true', dest='archive',
+            help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.')
 
     @transaction.atomic
     def handle(self, source, **options):
