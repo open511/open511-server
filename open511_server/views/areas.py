@@ -6,6 +6,7 @@ class AreaListView(ModelListAPIView):
 
     allow_jsonp = True
     model = Area
+    resource_name_plural = 'areas'
 
     base_qs = Area.objects.defer('geom')
 

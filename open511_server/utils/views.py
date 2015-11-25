@@ -250,9 +250,6 @@ class ModelListAPIView(APIView):
 
         objects, pagination = paginator.page()
 
-        if not getattr(self, 'resource_name_plural', None):
-            self.resource_name_plural = self.model._meta.verbose_name_plural.lower().replace(' ', '_')
-
         xml_objects = [self.object_to_xml(request, o) for o in objects]
         el = etree.Element(self.resource_name_plural)
         el.extend(xml_objects)
