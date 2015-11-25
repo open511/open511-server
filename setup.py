@@ -14,7 +14,7 @@ setup(
         'requests==2.8.1',
         'pytz>=2015b',
         'django-appconf==1.0.1',
-        'cssselect==0.8',
+        'cssselect==0.9.1',
         'Django==1.9rc1',
     ],
 )
