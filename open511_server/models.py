@@ -22,6 +22,7 @@ from django.utils.timezone import utc
 
 import dateutil.parser
 import hashlib
+from jsonfield import JSONField
 from lxml import etree
 from lxml.builder import E
 import requests
@@ -276,9 +277,6 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
 
     class Meta(object):
         abstract = True
-        unique_together = [
-            ('id', 'jurisdiction')
-        ]
         ordering = ('internal_id',)
 
     def __str__(self):
@@ -401,6 +399,9 @@ class RoadEvent(_Open511CommonModel):
     class Meta:
         verbose_name = _('Road event')
         verbose_name_plural = _('Road events')
+        unique_together = [
+            ('id', 'jurisdiction')
+        ]
 
     def __init__(self, *args, **kwargs):
         lang = kwargs.pop('lang', settings.LANGUAGE_CODE)
@@ -556,6 +557,9 @@ class Camera(_Open511CommonModel):
     class Meta:
         verbose_name = _('Camera')
         verbose_name_plural = _('Cameras')
+        unique_together = [
+            ('id', 'jurisdiction')
+        ]
 
     @property
     def name(self):
@@ -565,7 +569,22 @@ class Camera(_Open511CommonModel):
         return urlresolvers.reverse('open511_camera', kwargs={
             'jurisdiction_id': self.cached_jurisdiction.id,
             'id': self.id}
-        )        
+        )
+
+class ImportTaskStatus(_Open511Model):
+
+    id = models.CharField(max_length=300, primary_key=True)
+    status_info = JSONField(default={})
+
+    class Meta:
+        verbose_name_plural = 'Import task statuses'
+
+    def __str__(self):
+        return self.id
+
+    def admin_num_imported(self):
+        return self.status_info.get('objects_imported', '?')
+    admin_num_imported.short_description = '# objs last import'
 
 
 class SearchGeometry(object):
