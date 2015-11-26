@@ -16,6 +16,7 @@ from django.contrib.gis.geos import fromstr as geos_geom_from_string
 from django.core import urlresolvers
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.utils.encoding import python_2_unicode_compatible
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import utc
 
@@ -141,7 +142,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
         verbose_name = _('Jurisdiction')
         verbose_name_plural = _('Jurisdictions')
 
-    def __unicode__(self):
+    def __str__(self):
         return self.id
 
     def get_absolute_url(self):
@@ -197,7 +198,8 @@ class JurisdictionGeography(models.Model):
         verbose_name = _('Jurisdiction geography')
         verbose_name_plural = _('Jurisdiction geographies')
 
-    def __unicode__(self):
+    @python_2_unicode_compatible
+    def __str__(self):
         return u"Geography for %s" % self.jurisdiction
 
     def get_absolute_url(self):
@@ -279,7 +281,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
         ]
         ordering = ('internal_id',)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.full_id
 
     @property
@@ -532,7 +534,8 @@ class Area(_Open511Model, XMLModelMixin):
     def id(self):
         return self.xml_elem.findtext('id')
 
-    def __unicode__(self):
+    @python_2_unicode_compatible
+    def __str__(self):
         return u"%s (%s)" % (self.name, self.id)
 
     def save(self, *args, **kwargs):
