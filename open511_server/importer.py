@@ -63,7 +63,7 @@ class BaseImporter(object):
             self.last_run_obj.status_info = self.status
             self.last_run_obj.save()
 
-        print('Importer {} ran, created {} objects'.format(self.id, len(created)))
+        logger.info('Importer {} ran, created {} objects'.format(self.id, len(created)))
 
     def fetch(self):
         raise NotImplementedError

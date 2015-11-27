@@ -11,5 +11,9 @@ class Open511Settings(AppConf):
     # via django auth, and explicitly given edit permissions on a jurisdiction
     ALLOW_EDITING = True
 
+    # Set this to a logging confic dict, and it'll be used in place
+    # of the default settings.LOGGING in the import task runner
+    IMPORTER_LOGGING = {}
+
     class Meta:
         prefix = 'OPEN511'

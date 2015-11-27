@@ -48,6 +48,8 @@ def run_forever():
         gevent.sleep(120)
 
 def task_runner():
+    if getattr(settings, 'OPEN511_IMPORTER_LOGGING', None):
+        settings.LOGGING = settings.OPEN511_IMPORTER_LOGGING
     django.setup()
     task_defs = getattr(settings, 'OPEN511_IMPORT_TASKS', None)
     if not task_defs:
