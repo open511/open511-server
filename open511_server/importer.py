@@ -77,7 +77,8 @@ class BaseImporter(object):
             save_opts['default_language'] = self.default_language
         if self.base_url:
             save_opts['base_url'] = self.base_url
-        yield self.model.objects.update_or_create_from_xml(xml_obj, **save_opts)
+        obj_created, obj = self.model.objects.update_or_create_from_xml(xml_obj, **save_opts)
+        yield obj
 
     def _logging_iterable(self, iterable, step_name, exceptions=(Exception,)):
         iterator = iter(iterable)

@@ -72,7 +72,7 @@ class Command(BaseCommand):
 
             for xml_obj in root.xpath(resource_type['objects']):
                 try:
-                    db_obj = resource_type['model'].objects.update_or_create_from_xml(xml_obj, **opts)
+                    _, db_obj = resource_type['model'].objects.update_or_create_from_xml(xml_obj, **opts)
                     logger.info("Imported %s %s" % (xml_obj.tag, db_obj.id))
 
                     created.append(db_obj)

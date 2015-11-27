@@ -90,7 +90,7 @@ class JurisdictionManager(models.GeoManager):
         try:
             return self.get(id=jur_id)
         except ObjectDoesNotExist:
-            return self.update_or_create_from_xml(jur, base_url=url)
+            return self.update_or_create_from_xml(jur, base_url=url)[1]
 
     def update_or_create_from_xml(self, xml_jurisdiction, base_url=None):
         xml_jurisdiction = deepcopy(xml_jurisdiction)
@@ -100,11 +100,13 @@ class JurisdictionManager(models.GeoManager):
             base_url = self_link.get('href')
         try:
             jur = self.get(id=jur_id)
+            obj_created = False
         except ObjectDoesNotExist:
             jur = self.model(
                 external_url=urljoin(base_url, self_link.get('href')),
                 id=jur_id
             )
+            obj_created = True
             try:
                 created = xml_jurisdiction.xpath('created/text()')[0]
                 jur.created = dateutil.parser.parse(created)
@@ -120,7 +122,7 @@ class JurisdictionManager(models.GeoManager):
                 link.set('href', urljoin(base_url, link.get('href')))
         jur.xml_elem = xml_jurisdiction
         jur.save()
-        return jur
+        return ('CREATED' if obj_created else 'UPDATED', jur)
 
 class Jurisdiction(_Open511Model, XMLModelMixin):
 
@@ -215,6 +217,9 @@ class _Open511CommonManager(models.GeoManager):
     def update_or_create_from_xml(self, el,
             default_language=settings.LANGUAGE_CODE, base_url='',
             save=True):
+        """ Returns a tuple of (CREATED/UPDATED/UNMODIFIED, model_obj)"""
+
+        el_hash = hashlib.md5(etree.tostring(el)).hexdigest()
 
         el = deepcopy(el)
 
@@ -235,8 +240,12 @@ class _Open511CommonManager(models.GeoManager):
 
         try:
             obj = self.get(id=obj_id, jurisdiction=jurisdiction)
+            if obj.last_import_hash == el_hash:
+                return ('UNMODIFIED', obj)
+            created = False
         except ObjectDoesNotExist:
-            obj = self.model(id=obj_id, jurisdiction=jurisdiction)
+            created = True
+            obj = self.model(id=obj_id, jurisdiction=jurisdiction, last_import_hash=el_hash)
 
         self_link = el.xpath('link[@rel="self"]')
         if self_link:
@@ -260,7 +269,7 @@ class _Open511CommonManager(models.GeoManager):
         obj.xml_elem = el
         if save:
             obj.save()
-        return obj
+        return ('CREATED' if created else 'UPDATED', obj)
 
 class _Open511CommonModel(_Open511Model, XMLModelMixin):
     """A 'common' model is for a resource that has:
@@ -274,6 +283,9 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
     
     jurisdiction = models.ForeignKey(Jurisdiction)
     external_url = models.URLField(blank=True, db_index=True)
+
+    last_import_hash = models.CharField(max_length=32, blank=True,
+        help_text='MD5 of the input XML the last time this was imported')
 
     class Meta(object):
         abstract = True
@@ -358,8 +370,11 @@ class RoadEventManager(_Open511CommonManager):
     def update_or_create_from_xml(self, el,
         default_language=settings.LANGUAGE_CODE, base_url=''):
 
-        rdev = super(RoadEventManager, self).update_or_create_from_xml(
+        obj_created, rdev = super(RoadEventManager, self).update_or_create_from_xml(
             el, default_language, base_url, save=False)
+
+        if obj_created == 'UNMODIFIED':
+            return obj_created, rdev
 
         status = rdev.xml_elem.xpath('status')
         if status:
@@ -379,7 +394,7 @@ class RoadEventManager(_Open511CommonManager):
                 rdev.xml_elem.remove(elem)
 
         rdev.save()
-        return rdev
+        return obj_created, rdev
 
 class RoadEvent(_Open511CommonModel):
 
