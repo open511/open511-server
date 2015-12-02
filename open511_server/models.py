@@ -188,7 +188,7 @@ class Jurisdiction(_Open511Model, XMLModelMixin):
     def can_edit(self, user):
         return self.permitted_users.filter(id=user.id).exists()
 
-
+@python_2_unicode_compatible
 class JurisdictionGeography(models.Model):
 
     jurisdiction = models.OneToOneField(Jurisdiction)
@@ -201,7 +201,6 @@ class JurisdictionGeography(models.Model):
         verbose_name = _('Jurisdiction geography')
         verbose_name_plural = _('Jurisdiction geographies')
 
-    @python_2_unicode_compatible
     def __str__(self):
         return u"Geography for %s" % self.jurisdiction
 
@@ -523,6 +522,7 @@ class RoadEvent(_Open511CommonModel):
             areas_el.append(area.xml_elem)
 
 
+@python_2_unicode_compatible
 class Area(_Open511Model, XMLModelMixin):
 
     internal_id = models.AutoField(primary_key=True)
@@ -550,7 +550,6 @@ class Area(_Open511Model, XMLModelMixin):
     def id(self):
         return self.xml_elem.findtext('id')
 
-    @python_2_unicode_compatible
     def __str__(self):
         return u"%s (%s)" % (self.name, self.id)
 
