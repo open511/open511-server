@@ -15,7 +15,12 @@ setup(
         'pytz>=2015b',
         'django-appconf==1.0.1',
         'cssselect==0.9.1',
-        'Django==1.9rc2',
+        'Django>=1.9,<=1.10',
         'jsonfield==1.0.3'
     ],
+    entry_points = {
+        'console_scripts': [
+            'open511-task-runner = open511_server.task_runner.task_runner'
+        ]
+    },
 )
