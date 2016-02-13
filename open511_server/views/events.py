@@ -73,7 +73,7 @@ class RoadEventListView(CommonListView):
                 filter_func = lambda o: o.schedule.active_within_range(start, end)
             else:
                 filter_func = lambda o: o.schedule.includes(start)
-            objects = filter(filter_func, objects)
+            objects = [o for o in objects if filter_func(o)]
         return objects
 
     def get_qs(self, request, jurisdiction_id=None):
