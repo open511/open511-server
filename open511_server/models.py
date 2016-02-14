@@ -75,7 +75,7 @@ class JurisdictionManager(models.GeoManager):
         try:
             return self.get(external_url=url)
         except ObjectDoesNotExist:
-            id = filter(None, url.split('/'))[-1]
+            id = [bit for bit in url.split('/') if bit][-1]
             try:
                 return self.get(id=id)
             except ObjectDoesNotExist:
