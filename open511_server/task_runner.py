@@ -61,3 +61,6 @@ def task_runner():
         spawn_task(td)
 
     gevent.spawn(run_forever).join()
+
+if __name__ == '__main__':
+    task_runner()
