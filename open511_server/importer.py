@@ -1,9 +1,10 @@
 from copy import deepcopy
 import logging
 try:
-    from urlparse import urljoin
+    from urlparse import urljoin, parse_qsl
+    from urllib import urlencode
 except ImportError:
-    from urllib.parse import urljoin
+    from urllib.parse import urljoin, parse_qsl, urlencode
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -88,7 +89,7 @@ class BaseImporter(object):
             except StopIteration:
                 raise
             except exceptions as e:
-                logger.error("{} importing, during {} step: {}".format(
+                logger.exception("{} importing, during {} step: {}".format(
                     e.__class__.__name__, step_name, e))
 
 class Open511Importer(BaseImporter):
@@ -101,8 +102,15 @@ class Open511Importer(BaseImporter):
         return etree.fromstring(resp.content)
 
     def fetch(self):
-        next_url = self.opts['URL']
-        # FIXME add updated param
+        next_url, _, query = self.opts['URL'].partition('?')
+        query = dict(parse_qsl(query)) if query else {}
+        query['status'] = 'ALL'
+
+        if self.status.get('max_updated'):
+            query['updated'] = '>=' + self.status['max_updated']
+
+        next_url = next_url + '?' + urlencode(query)
+
         while next_url is not None:
             root = self._fetch_url(next_url)
             assert root.tag == 'open511'
@@ -114,6 +122,9 @@ class Open511Importer(BaseImporter):
                 self.base_url = root.get(XML_BASE)
             else:
                 self.base_url = next_url
+
+            self.status['max_updated'] = max(
+                root.xpath('events/event/updated/text()') + [self.status.get('max_updated', '')])
 
             for xml_obj in root.xpath('events/event'):
                 yield xml_obj
