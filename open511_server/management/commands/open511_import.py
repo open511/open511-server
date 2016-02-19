@@ -78,7 +78,7 @@ class Command(BaseCommand):
                     created.append(db_obj)
 
                 except (ValueError, ValidationError, Open511ValidationError) as e:
-                    logger.error("%s importing %s: %s" % (e.__class__.__name__, xml_obj.get('id'), e))
+                    logger.error("%s importing %s: %s" % (e.__class__.__name__, xml_obj.findtext('id'), e))
 
             next_link = root.xpath('pagination/link[@rel="next"]')
             if not next_link:
