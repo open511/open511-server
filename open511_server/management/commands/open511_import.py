@@ -38,6 +38,8 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, source, **options):
+        logging.basicConfig()
+
         source_is_url = bool(re.search(r'^https?://', source))
         root = self.fetch_from_url(source) if source_is_url else etree.parse(source).getroot()
         assert root.tag == 'open511'
