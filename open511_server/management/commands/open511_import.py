@@ -105,7 +105,7 @@ class Command(BaseCommand):
 
     def fetch_from_url(self, url):
         resp = requests.get(url, headers={
-            'Accept': 'application/xml',
+            'Accept': 'application/xml; */*;q=0.1',
             'Open511-Version': settings.OPEN511_DEFAULT_VERSION
         })
         return etree.fromstring(resp.content)
