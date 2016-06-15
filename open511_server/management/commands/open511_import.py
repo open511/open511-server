@@ -35,6 +35,8 @@ class Command(BaseCommand):
         parser.add_argument('source', type=str, help='Path or URL to the Open511 data to import')
         parser.add_argument('--archive', action='store_true', dest='archive',
             help='Set the status of all events in the jurisdiction *not* in the supplied file to ARCHIVED.')
+        parser.add_argument('--quiet', action='store_true',
+            help="Don't print any messages unless there's an error.")
 
     @transaction.atomic
     def handle(self, source, **options):
@@ -101,7 +103,8 @@ class Command(BaseCommand):
                 id__in=[rdev.id for rdev in created]).update(active=False)
             msg += " %s events archived." % updated
 
-        print(msg)
+        if not options['quiet']:
+            print(msg)
 
     def fetch_from_url(self, url):
         resp = requests.get(url, headers={
