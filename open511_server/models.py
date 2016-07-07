@@ -377,8 +377,10 @@ class RoadEventManager(_Open511CommonManager):
 
         status = rdev.xml_elem.xpath('status')
         if status:
-            if status[0].text.lower() == 'archived':
-                rdev.active = False
+            status = status[0].text.upper()
+            if status not in ('ACTIVE', 'ARCHIVED'):
+                raise ValueError("Invalid value for status tag %s", status)
+            rdev.active = (status == 'ACTIVE')
 
         try:
             created = rdev.xml_elem.xpath('created/text()')[0]
