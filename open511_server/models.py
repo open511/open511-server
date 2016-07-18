@@ -223,6 +223,9 @@ class _Open511CommonManager(models.GeoManager):
         el = deepcopy(el)
 
         jurisdiction_id, obj_id = el.findtext('id').split('/')
+        
+        if not (jurisdiction_id and obj_id):
+            raise ValidationError(u"%s is not a valid Open511 ID" % el.findtext('id'))
         el.remove(el.xpath('id')[0])
 
         external_jurisdiction = el.xpath('link[@rel="jurisdiction"]')
@@ -367,7 +370,7 @@ class _Open511CommonModel(_Open511Model, XMLModelMixin):
 
 class RoadEventManager(_Open511CommonManager):
     def update_or_create_from_xml(self, el,
-        default_language=settings.LANGUAGE_CODE, base_url=''):
+            default_language=settings.LANGUAGE_CODE, base_url=''):
 
         obj_created, rdev = super(RoadEventManager, self).update_or_create_from_xml(
             el, default_language, base_url, save=False)
