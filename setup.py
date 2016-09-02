@@ -20,7 +20,7 @@ setup(
     ],
     entry_points = {
         'console_scripts': [
-            'open511-task-runner = open511_server.task_runner.task_runner'
+            'open511-task-runner = open511_server.task_runner:task_runner'
         ]
     },
 )
