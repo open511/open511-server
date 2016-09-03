@@ -128,7 +128,7 @@ class Open511Importer(BaseImporter):
         self.full_update = bool(
             self.opts.get('FULL_UPDATES_ONLY') or
             (self.opts.get('FULL_UPDATES_EVERY') and
-                self.status.get('counter') % self.opts.get('FULL_UPDATES_EVERY', 1000) == 0)
+                self.status.get('counter', 0) % self.opts.get('FULL_UPDATES_EVERY', 1000) == 0)
         )
 
         if self.status.get('max_updated') and not self.full_update:
@@ -164,7 +164,7 @@ class Open511Importer(BaseImporter):
         yield input_document
 
     def post_import(self, imported):
-        if self.full_update:
+        if getattr(self, 'full_update', False):
             updated = self.archive_existing(imported)
             self.status['last_full_update'] = '{} {}'.format(datetime.datetime.now().isoformat(), updated)
 
