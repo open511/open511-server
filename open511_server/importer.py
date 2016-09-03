@@ -1,4 +1,5 @@
 from copy import deepcopy
+import datetime
 import logging
 try:
     from urlparse import urljoin, parse_qsl
@@ -88,6 +89,7 @@ class BaseImporter(object):
             id__in=[o.id for o in imported]).update(active=False)
         if updated:
             logger.info("{} events archived".format(updated))
+        return updated
 
     def save(self, xml_obj):
         save_opts = {}
@@ -163,5 +165,6 @@ class Open511Importer(BaseImporter):
 
     def post_import(self, imported):
         if self.full_update:
-            self.archive_existing(imported)
+            updated = self.archive_existing(imported)
+            self.status['last_full_update'] = '{} {}'.format(datetime.datetime.now().isoformat(), updated)
 
