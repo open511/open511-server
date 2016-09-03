@@ -61,6 +61,7 @@ class BaseImporter(object):
 
         if self.persist_status:
             self.status['objects_imported'] = len(created)
+            self.status['counter'] = self.status.get('counter', 0) + 1
             self.last_run_obj.status_info = self.status
             self.last_run_obj.save()
 
