@@ -59,6 +59,8 @@ class BaseImporter(object):
                     logger.debug("Imported %s %s" % (o5_xml_obj.tag, db_obj.id))
                     created.append(db_obj)
 
+        self.post_import(created)
+
         if self.persist_status:
             self.status['objects_imported'] = len(created)
             self.status['counter'] = self.status.get('counter', 0) + 1
@@ -72,6 +74,20 @@ class BaseImporter(object):
 
     def convert(self, input_document):
         raise NotImplementedError
+
+    def post_import(self, imported):
+        pass
+
+    def archive_existing(self, imported):
+        if not len(imported):
+            return
+        if len(set(o.jurisdiction_id for o in imported)) != 1:
+            return logger.error("Not archiving because events are from different jurisdictions")
+        jur = imported[0].jurisdiction
+        updated = self.model.filter(jurisdiction=jur, active=True).exclude(
+            id__in=[o.id for o in imported]).update(active=False)
+        if updated:
+            logger.info("{} events archived".format(updated))
 
     def save(self, xml_obj):
         save_opts = {}
@@ -107,7 +123,13 @@ class Open511Importer(BaseImporter):
         query = dict(parse_qsl(query)) if query else {}
         query['status'] = 'ALL'
 
-        if self.status.get('max_updated'):
+        self.full_update = bool(
+            self.opts.get('FULL_UPDATES_ONLY') or
+            (self.opts.get('FULL_UPDATES_EVERY') and
+                self.status.get('counter') % self.opts.get('FULL_UPDATES_EVERY', 1000) == 0)
+        )
+
+        if self.status.get('max_updated') and not self.full_update:
             query['updated'] = '>=' + self.status['max_updated']
 
         next_url = next_url + '?' + urlencode(query)
@@ -139,4 +161,7 @@ class Open511Importer(BaseImporter):
     def convert(self, input_document):
         yield input_document
 
+    def post_import(self, imported):
+        if self.full_update:
+            self.archive_existing(imported)
 
