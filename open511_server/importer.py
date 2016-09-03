@@ -84,7 +84,7 @@ class BaseImporter(object):
         if len(set(o.jurisdiction_id for o in imported)) != 1:
             return logger.error("Not archiving because events are from different jurisdictions")
         jur = imported[0].jurisdiction
-        updated = self.model.filter(jurisdiction=jur, active=True).exclude(
+        updated = self.model.objects.filter(jurisdiction=jur, active=True).exclude(
             id__in=[o.id for o in imported]).update(active=False)
         if updated:
             logger.info("{} events archived".format(updated))
