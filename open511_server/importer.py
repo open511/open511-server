@@ -123,16 +123,17 @@ class Open511Importer(BaseImporter):
     def fetch(self):
         next_url, _, query = self.opts['URL'].partition('?')
         query = dict(parse_qsl(query)) if query else {}
-        query['status'] = 'ALL'
 
-        self.full_update = bool(
-            self.opts.get('FULL_UPDATES_ONLY') or
-            (self.opts.get('FULL_UPDATES_EVERY') and
-                self.status.get('counter', 0) % self.opts.get('FULL_UPDATES_EVERY', 1000) == 0)
+        self.active_update = bool(
+            self.opts.get('ACTIVE_UPDATES_ONLY') or
+            (self.opts.get('ACTIVE_UPDATES_EVERY') != 0 and
+                self.status.get('counter', 0) % self.opts.get('ACTIVE_UPDATES_EVERY', 500) == 0)
         )
 
-        if self.status.get('max_updated') and not self.full_update:
-            query['updated'] = '>=' + self.status['max_updated']
+        if not self.active_update:
+            query['status'] = 'ALL'
+            if self.status.get('max_updated'):
+                query['updated'] = '>=' + self.status['max_updated']
 
         next_url = next_url + '?' + urlencode(query)
 
@@ -148,8 +149,9 @@ class Open511Importer(BaseImporter):
             else:
                 self.base_url = next_url
 
-            self.status['max_updated'] = max(
-                root.xpath('events/event/updated/text()') + [self.status.get('max_updated', '')])
+            if not self.active_update:
+                self.status['max_updated'] = max(
+                    root.xpath('events/event/updated/text()') + [self.status.get('max_updated', '')])
 
             for xml_obj in root.xpath('events/event'):
                 yield xml_obj
@@ -164,7 +166,7 @@ class Open511Importer(BaseImporter):
         yield input_document
 
     def post_import(self, imported):
-        if getattr(self, 'full_update', False):
+        if getattr(self, 'active_update', False):
             updated = self.archive_existing(imported)
-            self.status['last_full_update'] = '{} {}'.format(datetime.datetime.now().isoformat(), updated)
+            self.status['last_active_update'] = '{} {}'.format(datetime.datetime.now().isoformat(), updated)
 
