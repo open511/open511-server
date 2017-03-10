@@ -99,6 +99,8 @@ class APIView(View):
             resp = self.render_xml(request, result)
         elif request.response_format == 'application/json':
             resp = self.render_json(request, result)
+        else:
+            resp = HttpResponse('This API can only return data in XML or JSON.', status=406)
 
         if request.html_response:
             resp = self.render_api_browser(request, resp.content)
@@ -242,7 +244,10 @@ class ModelListAPIView(APIView):
 
         for filter_name, value in request.GET.items():
             if self.filters.get(filter_name):
-                qs = self.filters[filter_name](qs, value)
+                try:
+                    qs = self.filters[filter_name](qs, value)
+                except ValueError as e:
+                    raise BadRequest(u"Error in filter {}: {}".format(filter_name, e))
 
         objects = self.post_filter(request, qs)
 
