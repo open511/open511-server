@@ -23,11 +23,12 @@ def accept_language_from_request(request, default=DEFAULT_ACCEPT_LANGUAGE):
 def accept_from_request(request, default=DEFAULT_ACCEPT):
 
     if 'format' in request.GET:
-        if request.GET['format'] == 'xml':
+        get_format = request.GET['format'].lower()
+        if get_format == 'xml':
             return MIMEAccept('application/xml')
-        elif request.GET['format'] == 'json':
+        elif get_format == 'json':
             return MIMEAccept('application/json')
-        return MIMEAccept(request.GET['format'])
+        return MIMEAccept(get_format)
 
     if 'HTTP_ACCEPT' in request.META:
         return MIMEAccept(request.META['HTTP_ACCEPT'])
