@@ -15,7 +15,7 @@ setup(
         'pytz>=2015b',
         'django-appconf==1.0.1',
         'cssselect==0.9.1',
-        'Django>=1.11.0,<=2.0',
+        'Django>=1.11.8,<2',
         'jsonfield==1.0.3'
     ],
     entry_points = {
